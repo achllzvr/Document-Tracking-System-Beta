@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CHED Portal Login</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ched: '#2176ff',
+            card: '#fff',
+            bg: '#eef4ff',
+            input: '#f2f4fa',
+            btn: '#11131a',
+            demo: '#f6faff',
+          },
+          fontFamily: {
+            inter: ['Inter', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    html { font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center bg-bg">
+  <div class="w-full max-w-md bg-card rounded-2xl shadow-lg flex flex-col items-center px-6 py-8 md:px-8 md:py-10">
+    <!-- Logo -->
+    <div class="bg-ched text-white rounded-full w-24 h-24 flex items-center justify-center text-2xl font-semibold mb-6 tracking-wide">CHED</div>
+    <!-- Title -->
+    <div class="text-xl font-semibold text-gray-900 mb-1 text-center">CHED Portal Login</div>
+    <div class="text-base text-gray-500 mb-6 text-center">Choose your portal to sign in</div>
+    <!-- Tabs -->
+    <div class="flex w-full mb-5 rounded-xl bg-input overflow-hidden" id="tabs">
+      <button id="tab-admin" class="flex-1 py-2 font-semibold text-base text-gray-900 transition-colors duration-200 focus:outline-none bg-white text-ched shadow-sm" aria-selected="true">CHED Admin</button>
+      <button id="tab-hei" class="flex-1 py-2 font-semibold text-base text-gray-900 transition-colors duration-200 focus:outline-none" aria-selected="false">HEI Portal</button>
+    </div>
+    <!-- Form -->
+  <form id="login-form" class="w-full flex flex-col gap-4 mb-4">
+      <div>
+        <label for="email" id="email-label" class="block text-sm font-medium text-gray-900 mb-1">CHED Email Address</label>
+        <input type="email" id="email" placeholder="your.email@ched.gov.ph" required class="w-full px-4 py-2 rounded-lg bg-input text-base text-gray-900 focus:ring-2 focus:ring-ched outline-none transition" />
+      </div>
+      <div>
+        <label for="password" class="block text-sm font-medium text-gray-900 mb-1">Password</label>
+        <input type="password" id="password" placeholder="Enter your password" required class="w-full px-4 py-2 rounded-lg bg-input text-base text-gray-900 focus:ring-2 focus:ring-ched outline-none transition" />
+      </div>
+      <button type="submit" class="w-full py-3 bg-btn text-white text-base font-semibold rounded-lg mt-2 hover:bg-ched transition">Sign In to CHED Dashboard</button>
+    </form>
+  <p id="login-error" class="hidden text-sm text-red-600 mt-1">Invalid email or password.</p>
+    <!-- Demo Credentials -->
+    <div class="w-full bg-demo rounded-xl p-4 mt-2 text-base">
+      <span class="font-semibold text-ched block mb-1">Demo Credentials:</span>
+      <span class="text-gray-900">Email:</span> <a href="mailto:ched.admin@ched.gov.ph" class="text-ched underline">ched.admin@ched.gov.ph</a><br>
+      <span class="text-gray-900">Password:</span> <span class="text-ched">admin123</span>
+    </div>
+  </div>
+  <script>
+    // Tab switching logic
+      // Simple mock API authentication via fetch to mock-api/data.json
+      const errorEl = document.getElementById('login-error');
+      // If already logged in (sessionStorage token), go to dashboard
+      if (sessionStorage.getItem('ched_token')) {
+        window.location.href = 'ched-dashboard-tailwind.html';
+      }
+
+      document.getElementById('login-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const email = document.getElementById('email').value.trim().toLowerCase();
+        const pass = document.getElementById('password').value;
+        try {
+          const res = await fetch('mock-api/data.json');
+          const data = await res.json();
+          const user = data.users.find(u => u.email === email && u.password === pass);
+          if (user) {
+            // simulate token
+            sessionStorage.setItem('ched_token', btoa(email + ':' + pass));
+            sessionStorage.setItem('ched_user', user.email);
+            window.location.href = 'ched-dashboard-tailwind.html';
+          } else {
+            errorEl.classList.remove('hidden');
+            setTimeout(() => errorEl.classList.add('hidden'), 3000);
+          }
+        } catch (err) {
+          console.error(err);
+          errorEl.textContent = 'Unable to reach mock API.';
+          errorEl.classList.remove('hidden');
+        }
+      });
+
+    tabAdmin.addEventListener('click', () => {
+      tabAdmin.classList.add('bg-white', 'text-ched', 'shadow-sm');
+      tabAdmin.setAttribute('aria-selected', 'true');
+      tabHei.classList.remove('bg-white', 'text-ched', 'shadow-sm');
+      tabHei.setAttribute('aria-selected', 'false');
+      emailLabel.textContent = 'CHED Email Address';
+      emailInput.placeholder = 'your.email@ched.gov.ph';
+      btn.textContent = 'Sign In to CHED Dashboard';
+    });
+    tabHei.addEventListener('click', () => {
+      tabHei.classList.add('bg-white', 'text-ched', 'shadow-sm');
+      tabHei.setAttribute('aria-selected', 'true');
+      tabAdmin.classList.remove('bg-white', 'text-ched', 'shadow-sm');
+      tabAdmin.setAttribute('aria-selected', 'false');
+      emailLabel.textContent = 'HEI Email Address';
+      emailInput.placeholder = 'your.email@hei.edu.ph';
+      btn.textContent = 'Sign In to HEI Portal';
+    });
+    // Prevent actual form submission
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      alert('Demo only. No backend connected.');
+    });
+  </script>
+</body>
+</html>
