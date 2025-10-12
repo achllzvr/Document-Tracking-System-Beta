@@ -164,12 +164,20 @@
       });
       return [header.join(','), ...lines].join('\n');
     }
-    exportCsvBtn.addEventListener('click', ()=>{
-      const csv = toCSV(current);
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href=url; a.download='graduates-data.csv'; a.click(); URL.revokeObjectURL(url);
-      // TODO[backend]: server-side export endpoint
+    exportCsvBtn.addEventListener('click', async ()=>{
+      try{
+        const res = await fetch('/PRISM/PRISM/api/export.php', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ filename: 'graduates_' + (new Date()).toISOString().slice(0,19).replace(/[:T]/g,'_'), format: 'csv', data: current })
+        });
+        const j = await res.json();
+        if (j.status === 'ok' && j.url) {
+          const a = document.createElement('a'); a.href = j.url; a.download = j.url.split('/').pop(); document.body.appendChild(a); a.click(); a.remove();
+          Swal.fire({ icon:'success', title:'Export started', text:'CSV export generated on server.' , timer:1200, showConfirmButton:false });
+        } else {
+          Swal.fire({ icon:'error', title:'Export failed', text: j.message || 'Unknown error' });
+        }
+      }catch(err){ console.error(err); Swal.fire({ icon:'error', title:'Export failed', text: String(err) }); }
     });
     exportXlsxBtn.addEventListener('click', ()=>{
       Swal.fire({ icon:'info', title:'Export XLSX', text:'Server-side XLSX export will be implemented later.', timer:1300, showConfirmButton:false });

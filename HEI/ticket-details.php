@@ -11,11 +11,12 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
 </head>
 <body class="min-h-screen flex flex-col bg-gray-50 text-slate-800">
-  <div class="bg-emerald-600 text-white px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center gap-3"><i data-lucide="ticket" class="h-6 w-6"></i><h1 class="text-lg font-semibold">Ticket Details</h1></div>
-    <a href="./view-tickets.php" class="text-sm underline">Back to Tickets</a>
-  </div>
-  <main class="flex-1 p-6 overflow-y-auto">
+  <?php require_once __DIR__ . '/../includes/header.php'; ?>
+
+  <div class="flex-1 flex">
+    <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
+
+    <main class="flex-1 p-6 overflow-y-auto">
     <div class="max-w-4xl mx-auto space-y-6">
       <section id="header" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden"></section>
       <div class="grid md:grid-cols-2 gap-6">

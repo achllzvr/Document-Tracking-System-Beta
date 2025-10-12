@@ -10,19 +10,11 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="min-h-screen flex flex-col bg-gray-50 text-slate-800">
-  <div class="bg-emerald-600 text-white px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center gap-3"><i data-lucide="users" class="h-6 w-6"></i><h1 class="text-lg font-semibold">Faculty Data</h1></div>
-    <a href="./hei-dashboard.php" class="text-sm underline">Back to Dashboard</a>
-  </div>
+  <?php require_once __DIR__ . '/../includes/header.php'; ?>
+
   <div class="flex-1 flex">
-    <aside class="w-64 bg-white border-r border-slate-200">
-      <nav class="p-4 space-y-1">
-        <a class="block px-3 py-2 rounded hover:bg-slate-50" href="./hei-dashboard.php">Dashboard</a>
-        <a class="block px-3 py-2 rounded hover:bg-slate-50" href="./view-tickets.php">Tickets</a>
-        <a class="block px-3 py-2 rounded hover:bg-slate-50" href="./enrollment.php">Enrollment</a>
-        <a class="block px-3 py-2 rounded bg-slate-100" href="./faculty.php">Faculty</a>
-      </nav>
-    </aside>
+    <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
+
     <main class="flex-1 p-6 overflow-y-auto">
       <div class="max-w-7xl mx-auto space-y-6">
         <section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
