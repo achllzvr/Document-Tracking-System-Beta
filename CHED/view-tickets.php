@@ -41,7 +41,13 @@
         <section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
           <header class="px-5 pt-5 pb-3 border-b flex items-center justify-between">
             <h2 class="font-semibold">Tickets</h2>
-            <div id="pager" class="text-sm text-slate-600"></div>
+            <div class="flex items-center gap-3">
+              <a href="./create-ticket.php" class="inline-flex items-center gap-2 text-sm px-3 py-2 rounded bg-blue-600 text-white">
+                <i data-lucide="plus" class="h-4 w-4"></i>
+                Create Ticket
+              </a>
+              <div id="pager" class="text-sm text-slate-600"></div>
+            </div>
           </header>
           <div id="ticketList" class="p-5 divide-y"></div>
         </section>
