@@ -53,6 +53,26 @@ export const notifications = [
 export const employmentCodes = ['Full-time', 'Part-time', 'Contractual', 'Visiting'];
 export const degrees = ['PhD', 'Masters', 'Bachelors', 'Associate'];
 export const disciplines = ['Computer Science', 'Engineering', 'Business', 'Education', 'Medicine', 'Law', 'Arts', 'Sciences', 'Social Sciences', 'Humanities'];
+export const genders = ['Male', 'Female'];
+
+// Mock domain data for HEI data-entry pages
+export const enrollmentData = [
+  // heiId, academic year (YYYY), term (1/2), program, major, yearLevel, sex ('m'|'f'), totalCount
+  { id: 1, heiId: 1, acadYear: 2025, term: '1', program: 'BS Computer Science', major: '', yearLevel: 1, sex: 'm', totalCount: 120, createdAt: '2025-10-01T09:00:00Z' },
+  { id: 2, heiId: 1, acadYear: 2025, term: '1', program: 'BS Computer Science', major: '', yearLevel: 1, sex: 'f', totalCount: 110, createdAt: '2025-10-01T09:00:00Z' },
+];
+
+export const facultyData = [
+  // heiId, name, employmentType, gender, primaryTeaching (degree), highestDegree, discipline
+  { id: 1, heiId: 1, name: 'Prof. Juan dela Cruz', employmentType: 'Full-time', gender: 'Male', primaryTeaching: 'Bachelors', highestDegree: 'Masters', discipline: 'Computer Science', createdAt: '2025-10-01T09:00:00Z' },
+  { id: 2, heiId: 1, name: 'Dr. Maria Santos', employmentType: 'Full-time', gender: 'Female', primaryTeaching: 'Masters', highestDegree: 'PhD', discipline: 'Engineering', createdAt: '2025-10-02T10:00:00Z' },
+];
+
+export const graduatesData = [
+  // heiId, name, sex ('m'|'f'), date, program, major
+  { id: 1, heiId: 1, name: 'Ana Reyes', sex: 'f', date: '2025-06-15', program: 'BS Computer Science', major: '', createdAt: '2025-06-15T10:00:00Z' },
+  { id: 2, heiId: 1, name: 'Mark Cruz', sex: 'm', date: '2025-06-15', program: 'BS Computer Science', major: '', createdAt: '2025-06-15T10:00:00Z' },
+];
 
 export function paginate(items, page, perPage) {
   const total = items.length;
