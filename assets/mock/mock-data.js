@@ -74,6 +74,13 @@ export const graduatesData = [
   { id: 2, heiId: 1, name: 'Mark Cruz', sex: 'm', date: '2025-06-15', program: 'BS Computer Science', major: '', createdAt: '2025-06-15T10:00:00Z' },
 ];
 
+// HEI sub-users (Head manages these). Active indicates enabled/disabled.
+export const heiUsers = [
+  { id: 9001, heiId: 1, name: 'Juan Dela Cruz', email: 'juan.delacruz@up.edu.ph', role: 'Registrar', active: true, createdAt: '2025-09-20T09:00:00Z' },
+  { id: 9002, heiId: 1, name: 'Maria Santos', email: 'maria.santos@up.edu.ph', role: 'HR', active: true, createdAt: '2025-09-22T10:00:00Z' },
+  { id: 9003, heiId: 1, name: 'Ana Reyes', email: 'ana.reyes@up.edu.ph', role: 'Uploader', active: false, createdAt: '2025-09-25T11:00:00Z' },
+];
+
 export function paginate(items, page, perPage) {
   const total = items.length;
   const pages = Math.max(1, Math.ceil(total / perPage));
