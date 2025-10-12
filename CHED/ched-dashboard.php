@@ -16,39 +16,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   </head>
   <body class="min-h-screen flex flex-col bg-gray-50 text-slate-800">
-    <!-- Header -->
-    <div class="bg-blue-600 text-white px-6 py-4 flex items-center justify-between">
-      <div class="flex items-center gap-4">
-        <div class="h-8 w-8 rounded bg-white/10 flex items-center justify-center"><i data-lucide="graduation-cap" class="h-5 w-5"></i></div>
-        <h1 class="text-xl font-semibold">CHED HEI Data Portal</h1>
-      </div>
-      <div class="flex items-center gap-4">
-        <div class="relative">
-          <button id="notifBtn" class="hover:bg-blue-500 rounded-md p-2" title="Notifications">
-            <i data-lucide="bell" class="h-5 w-5"></i>
-          </button>
-          <span id="notifBadge" class="hidden absolute -top-1 -right-1 h-5 min-w-[1.25rem] px-1 rounded-full bg-rose-500 text-white text-[10px] leading-5 text-center"></span>
-        </div>
-        <div class="text-sm text-right">
-          <p id="userName" class="font-medium">CHED Admin</p>
-          <p class="text-blue-200 text-xs">CHED Administrator</p>
-        </div>
-      </div>
-    </div>
+    <?php require_once __DIR__ . '/../includes/header.php'; ?>
 
     <div class="flex-1 flex">
-      <!-- Sidebar -->
-      <aside class="w-64 bg-white border-r border-slate-200">
-        <nav class="p-4">
-          <p class="px-2 text-xs font-semibold uppercase tracking-wider mb-2 text-slate-500">Navigation</p>
-          <ul class="space-y-1">
-            <li><a class="flex items-center gap-2 px-3 py-2 rounded hover:bg-slate-50 bg-slate-100" href="./ched-dashboard.php"><i data-lucide="layout-dashboard" class="h-4 w-4"></i> Dashboard</a></li>
-            <li><a class="flex items-center gap-2 px-3 py-2 rounded hover:bg-slate-50" href="./view-heis.php"><i data-lucide="building-2" class="h-4 w-4"></i> Institutions</a></li>
-            <li><a class="flex items-center gap-2 px-3 py-2 rounded hover:bg-slate-50" href="./view-tickets.php"><i data-lucide="ticket" class="h-4 w-4"></i> Tickets</a></li>
-            <li><a class="flex items-center gap-2 px-3 py-2 rounded hover:bg-slate-50" href="./etl-jobs.php"><i data-lucide="refresh-cw" class="h-4 w-4"></i> ETL Jobs</a></li>
-          </ul>
-        </nav>
-      </aside>
+      <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
 
       <!-- Main -->
       <main class="flex-1 p-6 overflow-y-auto">
