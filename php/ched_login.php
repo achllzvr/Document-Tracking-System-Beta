@@ -26,7 +26,7 @@ require_once('../classes/database.php');
 $con = new database();
 
 // Alert Initialization
-$sweetAlertConfig = '';
+$sweetAlertConfig = "";
 
 // Login Form Submission
 if(isset($_POST['login'])) {
@@ -45,21 +45,19 @@ if(isset($_POST['login'])) {
             $_SESSION['chedName'] = $user['ched_last_name'] . ', ' . $user['ched_first_name'];
             $_SESSION['chedRole'] = $user['ched_role'];
 
-            // Alert
-            $sweetAlertConfig = "
-            <script>
-            Swal.fire({
-                icon: 'success',
-                title: 'Login Successful',
-                text: 'Welcome, " . htmlspecialchars($user['name']) . "!',
-                timer: 2500,
-                showConfirmButton: false
-            }).then(() => {
-                window.location.href = '/PRISM/CHED/ched-dashboard.php';
-            });
-            </script>
-            ";
+        $sweetAlertConfig = "
+        <script>
 
+        Swal.fire({
+            icon: 'success',
+            title: 'Login Successful',
+            text: 'Welcome, " . addslashes(htmlspecialchars($_SESSION['chedName'])) . "!',
+            confirmButtonText: 'Continue'
+        }).then(() => {
+            window.location.href = '../CHED/ched-dashboard.php';
+        });
+
+        </script>";
         }
 
     } else {
@@ -92,10 +90,8 @@ if(isset($_POST['login'])) {
         
     <!-- SweetAlert2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* small helper to mimic the React card top border color */
     :root{--ph-blue:#0038A8;--ph-blue-light:#3366FF}
   </style>
 </head>
@@ -110,7 +106,7 @@ if(isset($_POST['login'])) {
         </div>
         <div>
           <h1 class="text-xl font-semibold">CHED PRISM</h1>
-          <p class="text-sm text-slate-500">Sign in to access the <span style="font-weight: 600;">P</span>ortal for Repository, Insights and Submission Management</span></p>
+          <p class="text-sm text-slate-500">Login to access the <span style="color: black; font-weight: 600;">P</span>ortal for <span style="color: black; font-weight: 600;">R</span>esearch, <span style="color: black; font-weight: 600;">I</span>nsights and <span style="color: black; font-weight: 600;">S</span>ubmission Management</p>
         </div>
       </div>
 
