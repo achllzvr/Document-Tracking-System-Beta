@@ -16,7 +16,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   </head>
   <body class="min-h-screen flex flex-col bg-gray-50 text-slate-800">
-    <?php require_once __DIR__ . '/../includes/header.php'; ?>
+  <?php $showHEI = false; require_once __DIR__ . '/../includes/header.php'; ?>
 
     <div class="flex-1 flex">
       <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
@@ -56,6 +56,29 @@
               </div>
             </section>
           </div>
+          <!-- Data updates summary -->
+          <section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+            <div class="p-6">
+              <h3 class="font-semibold mb-3">Data Updates Summary</h3>
+              <div class="grid md:grid-cols-3 gap-4">
+                <div class="p-4 bg-slate-50 rounded-lg border">
+                  <p class="text-xs text-slate-500">Enrollment</p>
+                  <p class="text-2xl font-semibold">1,245</p>
+                  <p class="text-xs text-slate-400">Records updated this week</p>
+                </div>
+                <div class="p-4 bg-slate-50 rounded-lg border">
+                  <p class="text-xs text-slate-500">Faculty</p>
+                  <p class="text-2xl font-semibold">892</p>
+                  <p class="text-xs text-slate-400">Records updated this week</p>
+                </div>
+                <div class="p-4 bg-slate-50 rounded-lg border">
+                  <p class="text-xs text-slate-500">Graduates</p>
+                  <p class="text-2xl font-semibold">567</p>
+                  <p class="text-xs text-slate-400">Records updated this week</p>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </main>
     </div>

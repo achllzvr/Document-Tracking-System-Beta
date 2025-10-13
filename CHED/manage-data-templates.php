@@ -11,21 +11,9 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
 </head>
 <body class="min-h-screen flex flex-col bg-gray-50 text-slate-800">
-  <div class="bg-blue-600 text-white px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center gap-3"><i data-lucide="file-spreadsheet" class="h-6 w-6"></i><h1 class="text-lg font-semibold">Templates & Mappings</h1></div>
-    <a href="./ched-dashboard.php" class="text-sm underline">Back to Dashboard</a>
-  </div>
+  <?php $showHEI = false; require_once __DIR__ . '/../includes/header.php'; ?>
   <div class="flex-1 flex">
-    <aside class="w-64 bg-white border-r border-slate-200">
-      <nav class="p-4 space-y-1">
-        <a class="block px-3 py-2 rounded hover:bg-slate-50" href="./ched-dashboard.php">Dashboard</a>
-        <a class="block px-3 py-2 rounded hover:bg-slate-50" href="./view-tickets.php">Tickets</a>
-        <a class="block px-3 py-2 rounded hover:bg-slate-50" href="./data-enrollment.php">Data — Enrollment</a>
-        <a class="block px-3 py-2 rounded hover:bg-slate-50" href="./data-faculty.php">Data — Faculty</a>
-        <a class="block px-3 py-2 rounded hover:bg-slate-50" href="./data-graduates.php">Data — Graduates</a>
-        <a class="block px-3 py-2 rounded bg-slate-100" href="./manage-data-templates.php">Templates & Mappings</a>
-      </nav>
-    </aside>
+    <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
     <main class="flex-1 p-6 overflow-y-auto">
       <div class="max-w-7xl mx-auto space-y-6">
         <section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">

@@ -9,7 +9,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="min-h-screen flex flex-col bg-gray-50 text-slate-800">
-  <?php require_once __DIR__ . '/../includes/header.php'; ?>
+  <?php $showHEI = false; require_once __DIR__ . '/../includes/header.php'; ?>
 
   <div class="flex-1 flex">
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
@@ -40,7 +40,10 @@
 
         <section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
           <header class="px-5 pt-5 pb-3 border-b flex items-center justify-between">
-            <h2 class="font-semibold">Institutions</h2>
+            <div>
+              <h2 class="font-semibold">Institutions</h2>
+              <p class="text-sm text-slate-500">Browse and manage institutional profiles</p>
+            </div>
             <div id="pager" class="text-sm text-slate-600"></div>
           </header>
           <div class="p-5 overflow-x-auto">
@@ -108,7 +111,7 @@
           <td>${h.ownershipForm}</td>
           <td><span class="inline-flex text-xs px-2 py-1 rounded border ${h.status==='Active'?'border-emerald-300 text-emerald-700 bg-emerald-50':'border-slate-200'}">${h.status}</span></td>
           <td>
-            <a class="text-blue-600 hover:underline" href="./hei-details.php?hei_id=${h.id}">View Details</a>
+            <a class="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-blue-600" href="./hei-details.php?hei_id=${h.id}"><i data-lucide="eye" class="h-4 w-4"></i>View Details</a>
           </td>
         </tr>
       `).join('');

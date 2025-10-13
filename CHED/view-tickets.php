@@ -9,7 +9,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="min-h-screen flex flex-col bg-gray-50 text-slate-800">
-  <?php require_once __DIR__ . '/../includes/header.php'; ?>
+  <?php $showHEI = false; require_once __DIR__ . '/../includes/header.php'; ?>
 
   <div class="flex-1 flex">
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
@@ -18,8 +18,8 @@
       <div class="max-w-7xl mx-auto space-y-6">
         <section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
           <header class="px-5 pt-5 pb-3 border-b">
-            <h2 class="font-semibold">Filters</h2>
-            <p class="text-sm text-slate-500">Filter by HEI, assignee, category, priority, status, due</p>
+            <h2 class="font-semibold">Search & Filter</h2>
+            <p class="text-sm text-slate-500">Find tickets across institutions — filter by HEI, assignee, category, priority, status, or due date.</p>
           </header>
           <div class="p-5 grid md:grid-cols-6 gap-3">
             <select id="fHei" class="px-3 py-2 rounded border"><option value="all">All HEIs</option></select>

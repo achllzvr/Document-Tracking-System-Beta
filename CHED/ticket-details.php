@@ -10,12 +10,11 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="min-h-screen flex flex-col bg-gray-50 text-slate-800">
-  <div class="bg-blue-600 text-white px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center gap-3"><i data-lucide="ticket" class="h-6 w-6"></i><h1 class="text-lg font-semibold">Ticket Details</h1></div>
-    <a href="./view-tickets.php" class="text-sm underline">Back to Tickets</a>
-  </div>
-  <main class="flex-1 p-6 overflow-y-auto">
-    <div class="max-w-3xl mx-auto space-y-6">
+  <?php $showHEI = false; require_once __DIR__ . '/../includes/header.php'; ?>
+  <div class="flex-1 flex">
+    <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
+    <main class="flex-1 p-6 overflow-y-auto">
+      <div class="max-w-3xl mx-auto space-y-6">
       <section id="ticketHeader" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden"></section>
       <section class="grid md:grid-cols-2 gap-6">
         <div id="comments" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden"></div>

@@ -11,7 +11,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="min-h-screen flex flex-col bg-gray-50 text-slate-800">
-  <?php require_once __DIR__ . '/../includes/header.php'; ?>
+  <?php $showHEI = false; require_once __DIR__ . '/../includes/header.php'; ?>
 
   <div class="flex-1 flex">
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
