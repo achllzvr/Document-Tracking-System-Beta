@@ -1,37 +1,82 @@
 <?php
-// CHED login page
-// Assumptions: table `ched_users` exists (see CHED_document_repository.sql).
-// Adjust column names below if your schema differs (username/email/password fields).
-require_once __DIR__ . '/db.php';
+
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// Start the session
 session_start();
 
-$sweetAlertConfig = '';
-$error = '';
-
-if (isset($_SESSION['ched_ID'])) {
-  header('Location: /PRISM/CHED/ched-dashboard.php');
-  exit;
+// Check for existing session
+if (isset($_SESSION['chedID']) || isset($_SESSION['heiID'])) {
+    // Redirect based on user role
+    if (isset($_SESSION['chedID'])) {
+        header("Location: /PRISM/CHED/ched-dashboard.php");
+        exit();
+    } else {
+        header("Location: /PRISM/HEI/hei-dashboard.php");
+        exit();
+    }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
-  $identifier = trim($_POST['user'] ?? '');
-  $password = $_POST['password'] ?? '';
+// Database connection
+require_once('../classes/database.php');
 
-  // Example query: try matching username or email. Update column names as needed.
-  $stmt = $pdo->prepare('SELECT ched_ID, ched_firstname, ched_lastname, ched_password FROM ched_users WHERE ched_username = :id OR ched_email = :id LIMIT 1');
-  $stmt->execute([':id' => $identifier]);
-  $user = $stmt->fetch();
+// Instance of the database class
+$con = new database();
 
-  if ($user && password_verify($password, $user['ched_password'])) {
-    $_SESSION['ched_ID'] = $user['ched_ID'];
-    $_SESSION['chedFN'] = $user['ched_firstname'] ?? '';
-    $_SESSION['chedLN'] = $user['ched_lastname'] ?? '';
+// Alert Initialization
+$sweetAlertConfig = '';
 
-    $sweetAlertConfig = "<script>Swal.fire({icon:'success',title:'Login Successful',text:'Welcome, ".addslashes(htmlspecialchars($_SESSION['chedFN']))."',confirmButtonText:'Continue'}).then(()=>{window.location.href='/PRISM/CHED/ched-dashboard.php'});</script>";
-  } else {
-    $error = 'Invalid username or password.';
-    $sweetAlertConfig = "";
-  }
+// Login Form Submission
+if(isset($_POST['login'])) {
+
+    $id = $_POST['id'];
+    $password = $_POST['password'];
+
+    // Validate credentials
+    $user = $con->loginCHEDUser($id, $password);
+
+    if ($user) {
+
+        // Set session variables based on role
+        if ($user['ched_role'] === 'CHED') {
+            $_SESSION['chedID'] = $user['ched_id'];
+            $_SESSION['chedName'] = $user['ched_last_name'] . ', ' . $user['ched_first_name'];
+            $_SESSION['chedRole'] = $user['ched_role'];
+
+            // Alert
+            $sweetAlertConfig = "
+            <script>
+            Swal.fire({
+                icon: 'success',
+                title: 'Login Successful',
+                text: 'Welcome, " . htmlspecialchars($user['name']) . "!',
+                timer: 2500,
+                showConfirmButton: false
+            }).then(() => {
+                window.location.href = '/PRISM/CHED/ched-dashboard.php';
+            });
+            </script>
+            ";
+
+        }
+
+    } else {
+        
+        $sweetAlertConfig = "
+        <script>
+        Swal.fire({
+            icon: 'error',
+            title: 'Login Failed',
+            text: 'Invalid username or password.'
+        });
+        </script>
+        ";
+
+    }
+} else {
+    $error = '';
 }
 
 ?>
@@ -41,7 +86,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>CHED Login</title>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
+    <!-- SweetAlert2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet"/>
+        
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -50,53 +100,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
   </style>
 </head>
 <body class="min-h-screen flex items-center justify-center px-4 py-8 relative" style="background: linear-gradient(135deg, #e6eef9 0%, #fef9e6 100%);">
-  <!-- Watermark background image -->
-  <div class="fixed inset-0 pointer-events-none" style="background-image: url('/PRISM/assets/CHED_logo.png'); background-repeat: no-repeat; background-position: center center; background-size: 500px; opacity: 0.02;"></div>
-
   <div class="w-full max-w-md relative z-10 shadow-xl border-t-4 bg-white rounded" style="border-top-color: var(--ph-blue);">
     <div class="p-6">
       <div class="space-y-4 text-center">
         <div class="flex justify-center">
           <div class="p-3 rounded-full" style="background: linear-gradient(135deg, var(--ph-blue) 0%, var(--ph-blue-light) 100%); box-shadow: 0 4px 12px rgba(0, 56, 168, 0.3);">
-            <i data-lucide="graduation-cap" class="w-8 h-8 text-white"></i>
+            <img src="../assets/CHED_logo.png" alt="CHED Logo" class="h-12 w-12 object-contain" />
           </div>
         </div>
         <div>
-          <h1 class="text-xl font-semibold">CHED HEI Data Portal</h1>
-          <p class="text-sm text-slate-500">Sign in to access the Higher Education Information System</p>
+          <h1 class="text-xl font-semibold">CHED PRISM</h1>
+          <p class="text-sm text-slate-500">Sign in to access the <span style="font-weight: 600;">P</span>ortal for Repository, Insights and Submission Management</span></p>
         </div>
       </div>
 
       <form method="post" action="" class="mt-6 space-y-4">
-        <?php if ($error): ?>
-          <div class="p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm"><?php echo htmlspecialchars($error); ?></div>
-        <?php endif; ?>
 
+        <!-- ID input field -->
         <div class="space-y-1">
-          <label class="text-sm">Username</label>
-          <input name="user" value="<?php echo isset($_POST['user'])?htmlspecialchars($_POST['user']):'';?>" class="w-full border px-3 py-2 rounded" required />
+          <label class="text-sm">PRISM ID</label>
+          <input name="id" type="text" id="id" placeholder="Enter your PRISM ID" class="w-full border px-3 py-2 rounded" required />
         </div>
 
         <div class="space-y-1">
           <label class="text-sm">Password</label>
-          <input name="password" type="password" class="w-full border px-3 py-2 rounded" required />
+          <input name="password" type="password" id="password" placeholder="Enter your password" class="w-full border px-3 py-2 rounded" required />
         </div>
 
         <button name="login" type="submit" class="w-full text-white px-4 py-2 rounded" style="background: linear-gradient(135deg, var(--ph-blue) 0%, var(--ph-blue-light) 100%); box-shadow: 0 2px 8px rgba(0,56,168,0.3);">Sign In</button>
 
-        <div class="mt-4 p-4 bg-gray-50 rounded text-sm text-gray-600">
-          <p class="mb-2">Demo Credentials:</p>
-          <div class="space-y-1 text-xs text-gray-500">
-            <p><strong>CHED:</strong> ched_admin / admin123</p>
-            <p><strong>HEI Head:</strong> hei_head / head123</p>
-            <p><strong>HEI Sub-User:</strong> hei_user / user123</p>
-          </div>
-        </div>
       </form>
     </div>
   </div>
 
-  <script> if (window.lucide) lucide.createIcons(); </script>
   <?php echo $sweetAlertConfig; ?>
+
 </body>
 </html>
