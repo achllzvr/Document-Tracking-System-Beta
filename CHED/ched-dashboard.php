@@ -54,7 +54,7 @@ $totalGraduatesUpdates = $con->getTotalGraduatesUpdates();
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CHED Dashboard — PRISM</title>
+    <title>CHED PRISM – Dashboard</title>
     <link rel="icon" type="image/png" href="../assets/media/ched_logo.png" />
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- SweetAlert2 JS -->
