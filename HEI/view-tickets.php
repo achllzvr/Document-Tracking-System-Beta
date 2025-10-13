@@ -68,7 +68,7 @@
   </div>
 
   <script type="module">
-    import { tickets, templates, etlJobs, comments, heis } from '../../assets/mock/mock-data.js';
+  import { tickets, templates, etlJobs, comments, heis } from '../assets/mock/mock-data.js';
 
     // Determine current HEI by param or ticket default
     const params = new URLSearchParams(location.search);

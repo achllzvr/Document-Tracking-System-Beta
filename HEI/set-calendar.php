@@ -77,7 +77,7 @@
   </div>
 
   <script type="module">
-    import { tickets } from '../../assets/mock/mock-data.js';
+  import { tickets } from '../assets/mock/mock-data.js';
     // TODO[backend]: db.getCalendarEvents(heiId), db.saveCalendarEvent(event), db.deleteCalendarEvent(id)
 
     let events = [

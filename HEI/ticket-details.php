@@ -53,7 +53,7 @@
   </div>
 
   <script type="module">
-    import { tickets, comments, templates, etlJobs, heis } from '../../assets/mock/mock-data.js';
+  import { tickets, comments, templates, etlJobs, heis } from '../assets/mock/mock-data.js';
 
     const params = new URLSearchParams(location.search);
     const id = Number(params.get('ticket_id')) || tickets[0]?.id;

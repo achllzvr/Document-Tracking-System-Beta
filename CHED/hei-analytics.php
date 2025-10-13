@@ -195,7 +195,7 @@
         return { Metric: key, Value: val };
       });
       try{
-        const res = await fetch('/PRISM/PRISM/api/export.php', {
+  const res = await fetch('/PRISM/api/export.php', {
           method: 'POST', headers: {'Content-Type':'application/json'},
           body: JSON.stringify({ filename: 'analytics_' + (new Date()).toISOString().slice(0,19).replace(/[:T]/g,'_'), format: 'csv', data: rows })
         });

@@ -79,7 +79,7 @@
   </div>
 
   <script type="module">
-    import { heis, tickets, enrollmentData, facultyData, graduatesData } from '../../assets/mock/mock-data.js';
+  import { heis, tickets, enrollmentData, facultyData, graduatesData } from '../assets/mock/mock-data.js';
     // TODO[backend]: db.getAggregates(heiId, filters), analytics endpoints
 
     const params = new URLSearchParams(location.search);

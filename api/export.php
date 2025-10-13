@@ -73,13 +73,13 @@ if ($format === 'csv') {
         }
     }
     fclose($fp);
-    $relative = '/PRISM/PRISM/exports/' . basename($filepath);
+    $relative = '/PRISM/exports/' . basename($filepath);
     echo json_encode(["status" => "ok", "message" => "Export generated", "url" => $relative]);
     exit;
 } elseif ($format === 'json') {
     $filepath = $exportsDir . '/' . preg_replace('/[^A-Za-z0-9_\\-]/', '_', $filename) . '.json';
     file_put_contents($filepath, json_encode($data));
-    $relative = '/PRISM/PRISM/exports/' . basename($filepath);
+    $relative = '/PRISM/exports/' . basename($filepath);
     echo json_encode(["status" => "ok", "message" => "Export generated", "url" => $relative]);
     exit;
 } else {

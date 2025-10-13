@@ -49,7 +49,7 @@
   </div>
 
   <script type="module">
-    import { tickets, comments, heis } from '../../assets/mock/mock-data.js';
+  import { tickets, comments, heis } from '../assets/mock/mock-data.js';
 
     // Determine current HEI context (mock): hei_id param or use tickets[0].heiId
     const params = new URLSearchParams(location.search);

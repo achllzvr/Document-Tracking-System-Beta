@@ -67,7 +67,7 @@
   </div>
 
   <script type="module">
-    import { graduatesData, heis } from '../../assets/mock/mock-data.js';
+  import { graduatesData, heis } from '../assets/mock/mock-data.js';
 
     const params = new URLSearchParams(location.search);
     const heiId = Number(params.get('hei_id')) || 1;

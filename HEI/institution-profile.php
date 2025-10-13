@@ -80,7 +80,7 @@
   </div>
 
   <script type="module">
-    import { heis } from '../../assets/mock/mock-data.js';
+  import { heis } from '../assets/mock/mock-data.js';
     // TODO[backend]: db.getHEIById(hei_id), db.updateInstitutionProfile(heiId, fields)
 
     const fHei = document.getElementById('fHei');

@@ -69,7 +69,7 @@
   </div>
 
   <script type="module">
-    import { facultyData, employmentCodes, degrees, disciplines, genders, heis } from '../../assets/mock/mock-data.js';
+  import { facultyData, employmentCodes, degrees, disciplines, genders, heis } from '../assets/mock/mock-data.js';
 
     const params = new URLSearchParams(location.search);
     const heiId = Number(params.get('hei_id')) || 1;
