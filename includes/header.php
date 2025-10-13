@@ -22,5 +22,6 @@ if (!isset($_SESSION['chedID']) || !isset($_SESSION['heiID'])) {
       <a href="/PRISM/HEI/hei-dashboard.php" class="text-sm text-white/90">HEI</a>
     <?php endif; ?>
     <a href="/PRISM/CHED/ched-dashboard.php" class="text-sm text-white/90">CHED</a>
+    <a href="/PRISM/php/ched_logout.php" class="text-sm underline">Logout</a>
   </div>
 </div>

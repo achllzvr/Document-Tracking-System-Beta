@@ -51,10 +51,10 @@ if(isset($_POST['login'])) {
         Swal.fire({
             icon: 'success',
             title: 'Login Successful',
-            text: 'Welcome, " . addslashes(htmlspecialchars($_SESSION['chedName'])) . "!',
+            text: 'Welcome, " . htmlspecialchars($_SESSION['chedName']) . "!',
             confirmButtonText: 'Continue'
         }).then(() => {
-            window.location.href = '../CHED/ched-dashboard.php';
+            window.location.href = '/PRISM/CHED/ched-dashboard.php';
         });
 
         </script>";
@@ -110,17 +110,17 @@ if(isset($_POST['login'])) {
         </div>
       </div>
 
-      <form method="post" action="" class="mt-6 space-y-4">
+      <form method="POST" action="" class="mt-6 space-y-4">
 
         <!-- ID input field -->
         <div class="space-y-1">
           <label class="text-sm">PRISM ID</label>
-          <input name="id" type="text" id="id" placeholder="Enter your PRISM ID" class="w-full border px-3 py-2 rounded" required />
+          <input name="id" type="text" id="id" placeholder="Enter your PRISM ID" class="form-control w-full border px-3 py-2 rounded" required />
         </div>
 
         <div class="space-y-1">
           <label class="text-sm">Password</label>
-          <input name="password" type="password" id="password" placeholder="Enter your password" class="w-full border px-3 py-2 rounded" required />
+          <input name="password" type="password" id="password" placeholder="Enter your password" class="form-control w-full border px-3 py-2 rounded" required />
         </div>
 
         <button name="login" type="submit" class="w-full text-white px-4 py-2 rounded" style="background: linear-gradient(135deg, var(--ph-blue) 0%, var(--ph-blue-light) 100%); box-shadow: 0 2px 8px rgba(0,56,168,0.3);">Sign In</button>
