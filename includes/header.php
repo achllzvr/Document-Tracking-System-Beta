@@ -1,7 +1,18 @@
 <?php
-// Shared header include (front-end mock first)
-// Use $showHEI = false; in a page before requiring this include to hide the HEI link on CHED pages.
-if (!isset($showHEI)) $showHEI = true;
+
+if (!isset($_SESSION['chedID']) || !isset($_SESSION['heiID'])) {
+
+  // If not logged in, redirect to login page
+  if (!isset($_SESSION['chedID'])) {
+    $showHEI = true;
+  } elseif (!isset($_SESSION['heiID'])) {
+    $showHEI = false;
+  } else {
+    $showHEI = false;
+  }
+
+}
+
 ?>
 <div class="bg-blue-600 text-white px-6 py-4 flex items-center justify-between">
   <div class="flex items-center gap-3"><i data-lucide="box" class="h-6 w-6"></i><h1 class="text-lg font-semibold">PRISM</h1></div>

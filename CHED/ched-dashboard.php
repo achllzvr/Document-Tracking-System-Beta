@@ -1,6 +1,35 @@
 <?php
-// Front-end first: no DB calls here
-// TODO[backend]: require session guards and load counts
+
+// Start the session
+session_start();
+
+// Check for existing session
+if (!isset($_SESSION['chedID']) || !isset($_SESSION['heiID'])) {
+  
+  if (isset($_SESSION['chedID'])) {
+    // If a CHED user is logged in, redirect to CHED dashboard
+    header("Location: /PRISM/CHED/ched-dashboard.php");
+    exit();
+  } else {
+    // If an HEI user is logged in, redirect to HEI dashboard
+    header("Location: /PRISM/HEI/hei-dashboard.php");
+    exit();
+  }
+
+}
+
+// Database connection
+require_once('../classes/database.php');
+
+// Instance of the database class
+$con = new database();
+
+// Alert Initialization
+$sweetAlertConfig = "";
+
+// Set User Name from Session
+$userName = isset($_SESSION['chedName']) ? $_SESSION['chedName'] : 'Unknown User';
+
 ?>
 <!doctype html>
 <html lang="en">
@@ -10,8 +39,11 @@
     <title>CHED Dashboard — PRISM</title>
     <link rel="icon" type="image/png" href="../assets/media/ched_logo.png" />
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- SweetAlert2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- SweetAlert2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet"/>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   </head>
