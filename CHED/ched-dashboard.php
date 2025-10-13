@@ -14,9 +14,6 @@ if (!isset($_SESSION['chedID']) || isset($_SESSION['heiID'])) {
     // If an HEI user is logged in, redirect to HEI dashboard
     header("Location: ../php/hei_login.php");
     exit();
-  } else {
-    header("Location: ../php/ched_login.php");
-    exit();
   }
 
 }

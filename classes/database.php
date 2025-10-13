@@ -19,7 +19,7 @@ class database{
     //Login
     function loginCHEDUser($id, $password){
         $conn = $this->opencon();
-        $stmt = $conn->prepare("SELECT ched_id, ched_last_name, ched_first_name, ched_role, ched_password FROM ched_users WHERE ched_id = ?");
+        $stmt = $conn->prepare("SELECT ched_ID, ched_last_name, ched_first_name, ched_role, ched_password FROM ched_users WHERE ched_ID = ?");
         $stmt->execute([$id]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 

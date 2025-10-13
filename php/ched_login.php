@@ -40,8 +40,8 @@ if(isset($_POST['login'])) {
     if ($user) {
 
         // Set session variables based on role
-        if ($user['ched_role'] === 'CHED') {
-            $_SESSION['chedID'] = $user['ched_id'];
+        if ($user['ched_ID'] !== null) {
+            $_SESSION['chedID'] = $user['ched_ID'];
             $_SESSION['chedName'] = $user['ched_last_name'] . ', ' . $user['ched_first_name'];
             $_SESSION['chedRole'] = $user['ched_role'];
 
