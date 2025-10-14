@@ -157,9 +157,14 @@ if(isset($_POST['applyFilters'])) {
         </section>
 
         <section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+          <?php
+            // Compute dataset and count once for header and rows
+            $heis = isset($inst_list) ? $inst_list : $con->fetchInstitutions();
+            $heisCount = is_array($heis) ? count($heis) : 0;
+          ?>
           <header class="px-5 pt-5 pb-3 border-b flex items-center justify-between">
             <div>
-              <h2 class="font-semibold">Institutions</h2>
+              <h2 class="font-semibold">Institutions (<span id="institutionsCount"><?php echo $heisCount; ?></span>)</h2>
               <p class="text-sm text-slate-500">Browse and manage institutional profiles</p>
             </div>
             <div id="pager" class="text-sm text-slate-600"></div>
@@ -180,20 +185,41 @@ if(isset($_POST['applyFilters'])) {
               </thead>
               <tbody id="heisTbody">
                 <?php
-                
-                // display HEIs based on filters if applied, else display all HEIs
-                $heis = isset($inst_list) ? $inst_list : $con->fetchInstitutions();
+                // Render rows
                 foreach ($heis as $hei) {
-                    $heiId = htmlspecialchars($hei['HEI_id']);
-                    $heiName = htmlspecialchars($hei['HEI_name']);
-                    $heiRegion = htmlspecialchars($hei['HEI_region']);
-                    $heiType = htmlspecialchars($hei['HEI_type']);
-                    echo "<tr>
-                            <td class=\"py-2\">$heiName</td>
-                            <td>$heiRegion</td>
-                            <td>$heiType</td>
-                            <td><a href=\"institution-profile.php?hei_id=$heiId\" class=\"px-3 py-1 rounded bg-blue-600 text-white\">View Profile</a></td>
-                          </tr>";
+                    $heiId = htmlspecialchars($hei['HEI_id'] ?? '');
+                    $heiName = htmlspecialchars($hei['HEI_name'] ?? '');
+                    $heiRegion = htmlspecialchars($hei['HEI_region'] ?? '');
+                    $heiTypeRaw = $hei['HEI_type'] ?? '';
+                    $heiType = htmlspecialchars($heiTypeRaw);
+                    // Try to show an acronym/short code if present
+                    $heiAcronym = htmlspecialchars($hei['HEI_code'] ?? $hei['inst_code'] ?? $hei['acronym'] ?? $hei['inst_acronym'] ?? '');
+                    echo '<tr class="border-b last:border-0">';
+                    // Name stacked with acronym
+                    echo '<td class="py-4">';
+                    echo '<div class="flex flex-col">';
+                    echo '<div class="font-medium text-slate-900">'.$heiName.'</div>';
+                    if (!empty($heiAcronym)) {
+                      echo '<div class="text-xs text-slate-500">'.$heiAcronym.'</div>';
+                    }
+                    echo '</div>';
+                    echo '</td>';
+
+                    // Region
+                    echo '<td class="py-4 text-slate-700">'.$heiRegion.'</td>';
+
+                    // Type
+                    echo '<td class="py-4 text-slate-700">'.$heiType.'</td>';
+
+                    // Actions
+                    $profileHref = 'institution-profile.php?hei_id='.$heiId;
+                    echo '<td class="py-4">';
+                    echo '<a href="'.$profileHref.'" class="inline-flex items-center gap-2 text-slate-700 hover:text-slate-900">';
+                    echo '<i data-lucide="eye" class="w-4 h-4"></i><span>View Details</span>';
+                    echo '</a>';
+                    echo '</td>';
+
+                    echo '</tr>';
                 }
 
                 ?>
@@ -221,9 +247,18 @@ if(isset($_POST['applyFilters'])) {
                       const doc = parser.parseFromString(html, 'text/html');
                       const newTbody = doc.getElementById('heisTbody');
                       const newPager = doc.getElementById('pager');
+                      const newCount = doc.getElementById('institutionsCount');
                       if (newTbody) {
                         document.getElementById('heisTbody').innerHTML = newTbody.innerHTML;
                         if (newPager) document.getElementById('pager').innerHTML = newPager.innerHTML || '';
+                        if (newCount) {
+                          const countEl = document.getElementById('institutionsCount');
+                          if (countEl) countEl.textContent = newCount.textContent;
+                        }
+                        // Re-render lucide icons in newly-inserted content
+                        if (window.lucide && typeof lucide.createIcons === 'function') {
+                          lucide.createIcons();
+                        }
                       } else {
                         // fallback to full page navigation if response lacks expected elements
                         window.location.reload();
@@ -268,6 +303,11 @@ if(isset($_POST['applyFilters'])) {
   </div>
 
   <?php echo $sweetAlertConfig; ?>
-
+  <script>
+    // Initialize lucide icons on initial load
+    if (window.lucide && typeof lucide.createIcons === 'function') {
+      lucide.createIcons();
+    }
+  </script>
   </body>
 </html>
