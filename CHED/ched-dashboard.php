@@ -37,7 +37,7 @@ $userName = isset($_SESSION['chedName']) ? $_SESSION['chedName'] : 'Unknown User
 
 // On page load, fetch stats
 $totalHEIs = $con->getTotalHEIs();
-$openTickets = $con->getTotalOpenTickets();
+$pendingTickets = $con->getTotalPendingTickets();
 
 // Enrollment Updates
 $totalEnrollmentUpdates = $con->getTotalEnrollmentUpdates();
@@ -94,13 +94,13 @@ $totalGraduatesUpdates = $con->getTotalGraduatesUpdates();
               </div>
             </div>
 
-            <!-- Open Tickets Card -->
+            <!-- Pending Tickets Card -->
             <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
               <div class="p-6">
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="text-sm text-slate-500">Open Tickets</p>
-                    <p class="text-2xl mt-1" id="openTickets"><?php echo $openTickets; ?></p>
+                    <p class="text-sm text-slate-500">Pending Tickets</p>
+                    <p class="text-2xl mt-1" id="pendingTickets"><?php echo $pendingTickets; ?></p>
                   </div>
                   <div class="p-3 rounded-lg bg-green-500"><i data-lucide="ticket" class="h-6 w-6 text-white"></i></div>
                 </div>

@@ -45,8 +45,8 @@ class database{
         return $result ? $result['total'] : 0; 
     }
 
-    // Get total number of open tickets
-    function getTotalOpenTickets(){
+    // Get total number of pending tickets
+    function getTotalPendingTickets(){
         $conn = $this->opencon();
         $stmt = $conn->query("SELECT COUNT(*) as total FROM tickets WHERE ticket_status = 1");
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -93,6 +93,31 @@ class database{
                                 WHERE g.grad_udd_id >= CURDATE() - INTERVAL WEEKDAY(CURDATE()) DAY");
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return $result ? $result['total'] : 0;
+    }
+
+    // CHED Institutions Page Functions
+
+    // Fetch all Region Names
+    function fetchAllRegions(){
+        $conn = $this->opencon();
+        $stmt = $conn->query("SELECT DISTINCT region_ID, region_number, region_division FROM national_regions ORDER BY region_number");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Fetch all institution types
+    function fetchAllInstitutionTypes(){
+        $conn = $this->opencon();
+        $stmt = $conn->query("SELECT DISTINCT inst_type_ID, inst_type_code, inst_type_desc FROM institution_type ORDER BY inst_type_code");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Fetch Institutions with optional region/type filters
+    function fetchInstitutions($regionId = null, $typeId = null){
+        $conn = $this->opencon();
+        $query = "SELECT ip.inst_name as HEI_name, ip.inst_region as HEI_region, it.inst_type_desc as HEI_type FROM institutional_profile_data ip JOIN institution_type it ON it.inst_type_ID = ip.inst_type";
+        $stmt = $conn->prepare($query);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
 }
