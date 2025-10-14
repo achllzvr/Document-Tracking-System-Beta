@@ -111,12 +111,28 @@ class database{
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Fetch Institutions with optional region/type filters
-    function fetchInstitutions($regionId = null, $typeId = null){
+    // Fetch Institutions
+    function fetchInstitutions(){
         $conn = $this->opencon();
-        $query = "SELECT ip.inst_name as HEI_name, ip.inst_region as HEI_region, it.inst_type_desc as HEI_type FROM institutional_profile_data ip JOIN institution_type it ON it.inst_type_ID = ip.inst_type";
+        $query = "SELECT ip.hei_ID as HEI_id, ip.inst_name as HEI_name, nr.region_number as HEI_region, it.inst_type_desc as HEI_type
+                FROM institutional_profile_data ip
+                JOIN institution_type it ON it.inst_type_ID = ip.inst_type
+                JOIN national_regions nr ON nr.region_ID = ip.inst_region";
         $stmt = $conn->prepare($query);
         $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Fetch Institutions with filter
+    function fetchInstitutionsFiltered($regionId = null, $typeId = null){
+        $conn = $this->opencon();
+        $query = "SELECT ip.hei_ID as HEI_id, ip.inst_name as HEI_name, nr.region_number as HEI_region, it.inst_type_desc as HEI_type
+                FROM institutional_profile_data ip
+                JOIN institution_type it ON it.inst_type_ID = ip.inst_type
+                JOIN national_regions nr ON nr.region_ID = ip.inst_region
+                WHERE nr.region_number = ? AND it.inst_type_ID = ?";
+        $stmt = $conn->prepare($query);
+        $stmt->execute([$regionId, $typeId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 

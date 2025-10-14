@@ -1,18 +1,63 @@
-<?php // Front-end first; no DB calls. ?>
+<?php
+
+// Development: show errors so we can see what causes HTTP 500 locally
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
+
+// Start the session
+session_start();
+
+// Check for existing session
+if (!isset($_SESSION['chedID']) || isset($_SESSION['heiID'])) {
+  
+  if (!isset($_SESSION['chedID'])) {
+    // If a CHED user is logged in, redirect to CHED dashboard
+    header("Location: ../php/ched_login.php");
+    exit();
+  } elseif (isset($_SESSION['heiID'])) {
+    // If an HEI user is logged in, redirect to HEI dashboard
+    header("Location: ../php/hei_login.php");
+    exit();
+  }
+
+}
+
+// Database connection
+require_once('../classes/database.php');
+
+// Instance of the database class
+$con = new database();
+
+// Alert Initialization
+$sweetAlertConfig = "";
+
+// Set User Name from Session
+$userName = isset($_SESSION['chedName']) ? $_SESSION['chedName'] : 'Unknown User';
+
+?>
+
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tickets — CHED</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
-</head>
-<body class="min-h-screen flex flex-col bg-gray-50 text-slate-800">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CHED PRISM – View Tickets</title>
+    <link rel="icon" type="image/png" href="../assets/media/ched_logo.png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- SweetAlert2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet"/>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  </head>
+  <body class="min-h-screen flex flex-col bg-gray-50 text-slate-800">
   <?php $showHEI = false; require_once __DIR__ . '/../includes/header.php'; ?>
 
-  <div class="flex-1 flex">
-    <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
+    <div class="flex-1 flex">
+      <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
 
     <main class="flex-1 p-6 overflow-y-auto">
       <div class="max-w-7xl mx-auto space-y-6">
