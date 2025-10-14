@@ -15,7 +15,17 @@
   <div class="flex-1 flex">
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
 
-    <main class="flex-1 p-6 overflow-y-auto">
+  <main class="relative flex-1 p-6 overflow-y-auto blur-[2px]">
+      <!-- Development overlay (scoped to content area only) -->
+      <div id="devOverlay" class="absolute inset-0 z-20 backdrop-blur-sm bg-white/60 flex items-center justify-center p-6">
+        <div class="text-center">
+          <div class="mx-auto mb-4 h-14 w-14 rounded-full bg-slate-800/90 text-white flex items-center justify-center shadow">
+            <i data-lucide="construction" class="h-7 w-7"></i>
+          </div>
+          <p class="text-xl font-semibold text-slate-800">page is still under development</p>
+          <p class="mt-2 text-slate-600">Please check back soon.</p>
+        </div>
+      </div>
       <div class="max-w-7xl mx-auto space-y-6">
         <section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
           <header class="px-5 pt-5 pb-3 border-b flex items-center justify-between">
@@ -45,6 +55,8 @@
       </div>
     </main>
   </div>
+
+  
 
   <!-- Edit modal -->
   <div id="editModal" class="hidden fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="editTitle">
