@@ -47,7 +47,7 @@ export const etlJobs = [
 
 export const notifications = [
   { id: 'notif-1', userId: 'ched-1', type: 'comment', title: 'New Comment', message: 'Juan Dela Cruz commented on ticket "Q1 2025 Enrollment Data Submission"', read: false, createdAt: '2025-10-11T10:30:00Z', link: './ticket-details.php?ticket_id=101' },
-  { id: 'notif-2', userId: 'ched-1', type: 'etl', title: 'ETL Job Completed', message: 'Enrollment data upload for University of the Philippines completed successfully', read: false, createdAt: '2025-10-11T10:35:00Z', link: './etl-jobs.php' }
+  { id: 'notif-2', userId: 'ched-1', type: 'etl', title: 'ETL Job Completed', message: 'Enrollment data upload for University of the Philippines completed successfully', read: false, createdAt: '2025-10-11T10:35:00Z', link: './view-tickets.php' }
 ];
 
 export const employmentCodes = ['Full-time', 'Part-time', 'Contractual', 'Visiting'];

@@ -267,7 +267,7 @@ export const mockNotifications: Notification[] = [
     message: 'Enrollment data upload for University of the Philippines completed successfully',
     read: false,
     createdAt: '2025-10-11T10:35:00Z',
-    link: '/ched/etl-jobs'
+    link: '/ched/view-tickets'
   }
 ];
 

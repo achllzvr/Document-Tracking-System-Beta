@@ -11,7 +11,6 @@ import { ViewHEIs } from './pages/ched/ViewHEIs';
 import { ViewTickets as CHEDViewTickets } from './pages/ched/ViewTickets';
 import { DataEnrollment } from './pages/ched/DataEnrollment';
 import { EnrollmentDetails } from './pages/ched/EnrollmentDetails';
-import { ETLJobs } from './pages/ched/ETLJobs';
 import { HEIAnalytics } from './pages/ched/HEIAnalytics';
 import { CreateTicket } from './pages/ched/CreateTicket';
 import { HEIDetails } from './pages/ched/HEIDetails';
@@ -86,8 +85,7 @@ function AppContent() {
           return <PlaceholderPage title="Graduates Data" description="Browse and export graduate records across all HEIs" />;
         case 'manage-data-templates':
           return <PlaceholderPage title="Templates & Mappings" description="Manage data templates and ETL mappings" />;
-        case 'etl-jobs':
-          return <ETLJobs />;
+        // removed 'etl-jobs' route
         case 'code-tables':
           return <CodeTables />;
         case 'hei-analytics':

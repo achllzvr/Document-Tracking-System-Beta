@@ -2,8 +2,8 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
-import { Ticket, Building2, Users, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
-import { mockTickets, mockHEIs, mockETLJobs } from '../../data/mockData';
+import { Ticket, Building2, Users, TrendingUp, AlertCircle } from 'lucide-react';
+import { mockTickets, mockHEIs } from '../../data/mockData';
 
 interface CHEDDashboardProps {
   onNavigate?: (page: string, data?: any) => void;
@@ -12,7 +12,7 @@ interface CHEDDashboardProps {
 export function CHEDDashboard({ onNavigate }: CHEDDashboardProps) {
   const openTickets = mockTickets.filter(t => t.status === 'Open' || t.status === 'In Progress');
   const urgentTickets = mockTickets.filter(t => t.priority === 'Urgent' || t.priority === 'High');
-  const recentETL = mockETLJobs.slice(0, 5);
+  // ETL Jobs removed
 
   const stats = [
     { label: 'Total HEIs', value: mockHEIs.length, icon: Building2, color: 'bg-blue-500' },
@@ -50,7 +50,7 @@ export function CHEDDashboard({ onNavigate }: CHEDDashboardProps) {
         })}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-1 gap-6">
         {/* Recent Tickets */}
         <Card>
           <CardHeader>
@@ -93,44 +93,6 @@ export function CHEDDashboard({ onNavigate }: CHEDDashboardProps) {
           </CardContent>
         </Card>
 
-        {/* ETL Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent ETL Jobs</CardTitle>
-            <CardDescription>Data ingestion and processing status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {recentETL.map((job) => (
-                <div key={job.id} className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-lg">
-                  <div className="mt-1">
-                    {job.status === 'Success' ? (
-                      <CheckCircle className="w-5 h-5 text-green-500" />
-                    ) : (
-                      <AlertCircle className="w-5 h-5 text-red-500" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm">{job.domain} - {job.heiName}</p>
-                    <p className="text-xs text-gray-500">
-                      {job.successRows} / {job.totalRows} rows processed
-                    </p>
-                  </div>
-                  <Badge variant={job.status === 'Success' ? 'default' : 'destructive'}>
-                    {job.status}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-            <Button 
-              variant="outline" 
-              className="w-full mt-4"
-              onClick={() => onNavigate?.('etl-jobs')}
-            >
-              View All Jobs
-            </Button>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Quick Stats */}

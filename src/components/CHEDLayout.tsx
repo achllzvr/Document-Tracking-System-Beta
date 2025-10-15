@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { 
   LayoutDashboard, Building2, Users, Ticket, FileText, Database, 
   Settings, BarChart3, Bell, LogOut, Menu, X, GraduationCap,
-  Upload, FileSpreadsheet, Code
+  FileSpreadsheet, Code
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -32,7 +32,6 @@ const menuItems = [
   { id: 'data-faculty', label: 'Faculty Data', icon: Users },
   { id: 'data-graduates', label: 'Graduates Data', icon: GraduationCap },
   { id: 'manage-data-templates', label: 'Templates & Mappings', icon: FileSpreadsheet },
-  { id: 'etl-jobs', label: 'ETL Jobs', icon: Upload },
   { id: 'code-tables', label: 'Code Tables', icon: Code },
   { id: 'hei-analytics', label: 'HEI Analytics', icon: BarChart3 },
 ];

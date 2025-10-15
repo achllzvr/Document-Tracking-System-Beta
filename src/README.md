@@ -4,13 +4,13 @@ A comprehensive web application for the Commission on Higher Education (CHED) to
 
 ## Overview
 
-This system provides separate portals for CHED administrators and HEI users (both Head and Sub-Users) to manage institutional data, track tickets, and monitor ETL (Extract, Transform, Load) processes.
+This system provides separate portals for CHED administrators and HEI users (both Head and Sub-Users) to manage institutional data and track tickets.
 
 ## Features
 
 ### Global Features
 - **Login System**: Role-based authentication for CHED, HEI Head, and HEI Sub-Users
-- **Notifications**: Real-time notifications for ticket updates, comments, and ETL status
+- **Notifications**: Real-time notifications for ticket updates and comments
 - **Responsive Design**: Mobile-friendly interface that works on all devices
 
 ### CHED Portal Features
@@ -21,10 +21,9 @@ This system provides separate portals for CHED administrators and HEI users (bot
    - Enrollment data across all HEIs
    - Faculty data management
    - Graduates data tracking
-5. **ETL Jobs**: Monitor data ingestion and processing with error reporting
-6. **Analytics**: Interactive charts and visualizations for institutional, enrollment, faculty, and graduate data
-7. **Templates & Mappings**: Manage data templates for HEI submissions
-8. **Code Tables**: Reference data management
+5. **Analytics**: Interactive charts and visualizations for institutional, enrollment, faculty, and graduate data
+6. **Templates & Mappings**: Manage data templates for HEI submissions
+7. **Code Tables**: Reference data management
 
 ### HEI Portal Features
 1. **Dashboard**: Personalized view of assigned tickets and data submission status
@@ -65,7 +64,7 @@ This system provides separate portals for CHED administrators and HEI users (bot
 
 ## Page Structure
 
-### CHED Area (20 pages)
+### CHED Area (19 pages)
 - Dashboard
 - Institutions List
 - Institution Details
@@ -78,7 +77,6 @@ This system provides separate portals for CHED administrators and HEI users (bot
 - Faculty Data
 - Graduates Data
 - Templates & Mappings
-- ETL Jobs
 - Code Tables
 - HEI Analytics
 
@@ -114,11 +112,7 @@ This system provides separate portals for CHED administrators and HEI users (bot
 - Export functionality
 - Validation and error handling
 
-### ETL Processing
-- Upload monitoring
-- Success/failure tracking
-- Error reporting and reprocessing
-- Row-level statistics
+<!-- ETL Processing section removed -->
 
 ### Analytics
 - Interactive charts and graphs
@@ -140,7 +134,7 @@ Both CHED and HEI users receive notifications for:
 - New ticket assignments
 - Comment updates
 - Status changes
-- ETL job completions
+<!-- ETL job completions removed -->
 - Approaching due dates
 
 ## Future Enhancements
