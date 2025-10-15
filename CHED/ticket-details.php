@@ -16,9 +16,8 @@
     <main class="flex-1 p-6 overflow-y-auto">
       <div class="max-w-3xl mx-auto space-y-6">
       <section id="ticketHeader" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden"></section>
-      <section class="grid md:grid-cols-2 gap-6">
+      <section class="grid md:grid-cols-1 gap-6">
         <div id="comments" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden"></div>
-        <div id="etlSummary" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden"></div>
       </section>
     </div>
   </main>
@@ -36,7 +35,7 @@
   </template>
 
   <script type="module">
-    import { tickets, comments, etlJobs } from '../assets/mock/mock-data.js';
+  import { tickets, comments } from '../assets/mock/mock-data.js';
 
     const params = new URLSearchParams(location.search);
     const id = Number(params.get('ticket_id')) || tickets[0]?.id;
@@ -114,26 +113,7 @@
       // TODO[backend]: api.tickets.addComment(ticketId, content)
     });
 
-    // ETL summary (mock)
-    const etl = etlJobs.filter(j => j.ticketId === id);
-    const etlBox = document.getElementById('etlSummary');
-    etlBox.innerHTML = `
-      <div class="px-5 pt-5 pb-3 border-b">
-        <h3 class="font-semibold">Ingestion Summary</h3>
-        <p class="text-sm text-slate-500">Latest data ingestion runs</p>
-      </div>
-      <div class="p-4 space-y-3">
-        ${etl.length ? etl.map(j => `
-          <div class="p-3 rounded border ${j.status==='Success'?'border-emerald-200 bg-emerald-50': j.status==='Failed'?'border-rose-200 bg-rose-50':'border-amber-200 bg-amber-50'}">
-            <div class="flex items-center justify-between">
-              <p class="text-sm">${j.domain} — ${j.heiName}</p>
-              <span class="inline-flex text-xs px-2 py-1 rounded border">${j.status}</span>
-            </div>
-            <p class="text-xs text-slate-600 mt-1">${j.successRows} / ${j.totalRows} rows processed</p>
-            ${j.errors?.length ? `<div class="mt-2 text-xs text-rose-700 space-y-1">${j.errors.map(e=>`• ${e}`).join('<br>')}</div>` : ''}
-          </div>
-        `).join('') : '<p class="text-sm text-slate-500">No ETL jobs yet.</p>'}
-      </div>`;
+    // ETL summary removed
 
     if (window.lucide) lucide.createIcons();
   </script>

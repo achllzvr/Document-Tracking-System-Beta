@@ -68,7 +68,7 @@
   </div>
 
   <script type="module">
-  import { tickets, templates, etlJobs, comments, heis } from '../assets/mock/mock-data.js';
+  import { tickets, templates, comments } from '../assets/mock/mock-data.js';
 
     // Determine current HEI by param or ticket default
     const params = new URLSearchParams(location.search);
@@ -154,8 +154,7 @@
       // Create a mock ETL job result and a comment
       const t = myTickets.find(x=>x.id===currentTicketId);
       const now = new Date().toISOString();
-      etlJobs.unshift({ id: 'etl-'+Math.random().toString(36).slice(2,8), heiId: t.heiId, heiName: heis.find(h=>h.id===t.heiId)?.name || '', ticketId: t.id, domain: t.category, status: 'Success', totalRows: parsedRows.length-1, successRows: parsedRows.length-1, errorRows: 0, errors: [], uploadedBy: 'You', createdAt: now });
-      comments.push({ id: Math.random(), ticketId: t.id, userId: t.assigneeId || 0, userName: 'You', userRole: 'HEI', content: 'Uploaded template (mock).', createdAt: now });
+  comments.push({ id: Math.random(), ticketId: t.id, userId: t.assigneeId || 0, userName: 'You', userRole: 'HEI', content: 'Uploaded template (mock).', createdAt: now });
       closeUpload();
       Swal.fire({ icon: 'success', title: 'Upload simulated', timer: 1200, showConfirmButton: false });
       // TODO[backend]: POST to tickets/upload-data.php and show actual ETL summary

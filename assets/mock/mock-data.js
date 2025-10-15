@@ -40,14 +40,10 @@ export const templates = [
   { id: 202, name: 'Faculty Template v1', category: 'Faculty', version: '1.0', file: './assets/templates/faculty_v1.xlsx' },
 ];
 
-export const etlJobs = [
-  { id: 'etl-1', heiId: 1, heiName: 'University of the Philippines', ticketId: 101, domain: 'Enrollment', status: 'Success', totalRows: 150, successRows: 150, errorRows: 0, errors: [], uploadedBy: 'Juan Dela Cruz', createdAt: '2025-10-11T10:30:00Z' },
-  { id: 'etl-2', heiId: 4, heiName: 'University of Santo Tomas', ticketId: 105, domain: 'Enrollment', status: 'Failed', totalRows: 200, successRows: 0, errorRows: 200, errors: ['Invalid academic year format in rows 1-50', 'Missing program code in rows 51-200'], uploadedBy: 'Rosa Martinez', createdAt: '2025-10-09T14:00:00Z' },
-];
+// etlJobs removed
 
 export const notifications = [
-  { id: 'notif-1', userId: 'ched-1', type: 'comment', title: 'New Comment', message: 'Juan Dela Cruz commented on ticket "Q1 2025 Enrollment Data Submission"', read: false, createdAt: '2025-10-11T10:30:00Z', link: './ticket-details.php?ticket_id=101' },
-  { id: 'notif-2', userId: 'ched-1', type: 'etl', title: 'ETL Job Completed', message: 'Enrollment data upload for University of the Philippines completed successfully', read: false, createdAt: '2025-10-11T10:35:00Z', link: './view-tickets.php' }
+  { id: 'notif-1', userId: 'ched-1', type: 'comment', title: 'New Comment', message: 'Juan Dela Cruz commented on ticket "Q1 2025 Enrollment Data Submission"', read: false, createdAt: '2025-10-11T10:30:00Z', link: './ticket-details.php?ticket_id=101' }
 ];
 
 export const employmentCodes = ['Full-time', 'Part-time', 'Contractual', 'Visiting'];

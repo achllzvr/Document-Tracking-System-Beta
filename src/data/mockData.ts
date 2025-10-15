@@ -1,4 +1,4 @@
-import { HEI, Ticket, EnrollmentData, FacultyData, GraduateData, ETLJob, Notification } from '../types';
+import { HEI, Ticket, EnrollmentData, FacultyData, GraduateData, Notification } from '../types';
 
 export const mockHEIs: HEI[] = [
   {
@@ -217,36 +217,7 @@ export const mockGraduateData: GraduateData[] = [
   }
 ];
 
-export const mockETLJobs: ETLJob[] = [
-  {
-    id: 'etl-1',
-    heiId: 'hei-1',
-    heiName: 'University of the Philippines',
-    ticketId: 'tick-1',
-    domain: 'Enrollment',
-    status: 'Success',
-    totalRows: 150,
-    successRows: 150,
-    errorRows: 0,
-    errors: [],
-    uploadedBy: 'Juan Dela Cruz',
-    createdAt: '2025-10-11T10:30:00Z'
-  },
-  {
-    id: 'etl-2',
-    heiId: 'hei-4',
-    heiName: 'University of Santo Tomas',
-    ticketId: 'tick-5',
-    domain: 'Enrollment',
-    status: 'Failed',
-    totalRows: 200,
-    successRows: 0,
-    errorRows: 200,
-    errors: ['Invalid academic year format in rows 1-50', 'Missing program code in rows 51-200'],
-    uploadedBy: 'Rosa Martinez',
-    createdAt: '2025-10-09T14:00:00Z'
-  }
-];
+// mockETLJobs removed
 
 export const mockNotifications: Notification[] = [
   {
@@ -259,16 +230,7 @@ export const mockNotifications: Notification[] = [
     createdAt: '2025-10-11T10:30:00Z',
     link: '/ched/ticket-details/tick-1'
   },
-  {
-    id: 'notif-2',
-    userId: 'ched-1',
-    type: 'etl',
-    title: 'ETL Job Completed',
-    message: 'Enrollment data upload for University of the Philippines completed successfully',
-    read: false,
-    createdAt: '2025-10-11T10:35:00Z',
-    link: '/ched/view-tickets'
-  }
+  // ETL notification removed
 ];
 
 export const mockRegions = [

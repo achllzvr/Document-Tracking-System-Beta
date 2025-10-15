@@ -33,10 +33,7 @@ export const templates = [
   { id: 302, domain: "Faculty", name: "Faculty Template v2", file_rel_path: "storage/templates/faculty_v2.xlsx" }
 ];
 
-// ETL jobs
-export const etlJobs = [
-  { id: 801, ticket_ID: 501, hei_user_ID: 202, hei_ID: 101, domain: "Enrollment", original_filename: "enrollment_ay2025_term1.xlsx", stored_rel_path: "storage/hei-uploads/uoe/ticket_501_20251005.xlsx", status: "COMPLETED", rows_inserted: 540, rows_updated: 0, rows_failed: 0, created_at: "2025-10-05 08:40:00" }
-];
+// ETL jobs removed
 
 // Code tables (subset)
 export const regions = [
