@@ -56,7 +56,7 @@ class database{
     // Recent Tickets Fetch
     function getRecentTickets(){
         $conn = $this->opencon();
-        $stmt = $conn->prepare("SELECT t.ticket_ID, t.hei_ID, h.inst_name AS hei_name, t.ticket_title, t.ticket_category, t.ticket_priority, t.ticket_status, t.ticket_created_at 
+        $stmt = $conn->prepare("SELECT t.ticket_ID AS id, t.hei_ID, h.inst_name AS hei_name, t.ticket_title, t.ticket_category, t.ticket_priority, t.ticket_status, t.ticket_created_at 
                                 FROM tickets t
                                 JOIN institutional_profile_data h ON t.hei_ID = h.hei_ID
                                 ORDER BY t.ticket_created_at DESC 
@@ -156,6 +156,99 @@ class database{
         return $row;
     }
 
+    // Ticket Pages Functions
+
+    // Fetch Tickets
+    function getTickets($filters = []){
+        $conn = $this->opencon();
+
+        $sql = "SELECT
+                    t.ticket_ID AS id,
+                    t.hei_ID,
+                    t.ticket_title,
+                    t.ticket_category,
+                    t.ticket_priority,
+                    t.ticket_status,
+                    t.ticket_due_date,
+                    ip.inst_name AS hei_name,
+                    t.ticket_created_at
+                FROM tickets t
+                LEFT JOIN institutional_profile_data ip ON ip.hei_ID = t.hei_ID
+                WHERE 1=1";
+
+        $params = [];
+        if (!empty($filters['hei_ID'])) {
+            $sql .= " AND t.hei_ID = ?";
+            $params[] = (int)$filters['hei_ID'];
+        }
+        if (!empty($filters['category'])) {
+            $sql .= " AND t.ticket_category = ?";
+            $params[] = $filters['category'];
+        }
+        if (!empty($filters['priority'])) {
+            $sql .= " AND t.ticket_priority = ?";
+            $params[] = $filters['priority'];
+        }
+        if (!empty($filters['status'])) {
+            $sql .= " AND t.ticket_status = ?";
+            $params[] = $filters['status'];
+        }
+        if (!empty($filters['due'])) {
+            // match date portion only
+            $sql .= " AND DATE(t.ticket_due_date) = ?";
+            $params[] = $filters['due'];
+        }
+
+        $sql .= " ORDER BY t.ticket_created_at DESC";
+
+        $stmt = $conn->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Fetch HEIs for dropdown
+    function getHEIs($filters = []){
+        $conn = $this->opencon();
+        $query = "SELECT hei_ID as id, inst_name as name
+                  FROM institutional_profile_data";
+        $params = [];
+        $conditions = [];
+        if (isset($filters['region'])) {
+            $conditions[] = "inst_region = ?";
+            $params[] = $filters['region'];
+        }
+        if (isset($filters['type'])) {
+            $conditions[] = "inst_type = ?";
+            $params[] = $filters['type'];
+        }
+        if ($conditions) {
+            $query .= " WHERE " . implode(" AND ", $conditions);
+        }
+        $stmt = $conn->prepare($query);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Create Ticket
+    function createTicket($heiID, $chedUserID, $title, $category, $priority, $dueDate, $description){
+        $conn = $this->opencon();
+
+        try{
+            $conn->beginTransaction();
+
+            $stmt = $conn->prepare("INSERT INTO tickets (hei_ID, ched_user_ID, ticket_title, ticket_category, ticket_priority, ticket_due_date, ticket_description) VALUES (?,?,?,?,?,?,?)");
+            $stmt->execute([$heiID, $chedUserID, $title, $category, $priority, $dueDate, $description]);
+
+            $ticketID = $conn->lastInsertId();
+            $conn->commit();
+
+            return $ticketID;
+        }catch (PDOException $e){
+            $conn ->rollBack();
+            return false;
+        }
+    }
+
     // HEI Functions
 
     // Account Functions
@@ -198,7 +291,7 @@ class database{
     ---------------------
     // function getTickets($filters = [], $page = 1, $perPage = 25)
     // function getTicketById($ticketId)
-    // function createTicket($data)
+    DONE // function createTicket($data)
     // function updateTicket($ticketId, $data)
     // function changeTicketStatus($ticketId, $status, $updatedBy)
     // function assignTicket($ticketId, $assigneeId)
@@ -213,7 +306,7 @@ class database{
 
     HEI / Institutions
     -------------------
-    // function getHEIs($filters = [])
+    DONE // function getHEIs($filters = [])
     DONE // function getInstitutionProfile($heiId)
     // function updateInstitutionProfile($heiId, $data)
 

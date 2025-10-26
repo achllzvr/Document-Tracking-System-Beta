@@ -7,16 +7,39 @@ require_once __DIR__ . '/../includes/dev_logs.php';
 require_once __DIR__ . '/../includes/ched_protect.php';
 
 // Database connection
-require_once('../classes/database.php');
-
-// Instance of the database class
-$con = new database();
+require_once('../includes/database_conn.php');
 
 // Alert Initialization
 $sweetAlertConfig = "";
 
 // Set User Name from Session
 $userName = isset($_SESSION['chedName']) ? $_SESSION['chedName'] : 'Unknown User';
+
+// --- Filters: load HEIs and read GET filters ---
+$heis = [];
+if (isset($con) && method_exists($con, 'fetchInstitutions')) {
+  $rawHeis = $con->fetchInstitutions();
+  // normalize to id/name pairs
+  foreach ($rawHeis as $h) {
+    $hid = isset($h['HEI_id']) ? $h['HEI_id'] : ($h['hei_ID'] ?? ($h['id'] ?? null));
+    $hname = $h['HEI_name'] ?? ($h['inst_name'] ?? ($h['name'] ?? ''));
+    if ($hid) $heis[] = ['id' => (int)$hid, 'name' => $hname];
+  }
+}
+
+// Read filter inputs (GET) and prepare filters for DB
+$fHei = $_GET['fHei'] ?? 'all';
+$fCategory = $_GET['fCategory'] ?? 'all';
+$fPriority = $_GET['fPriority'] ?? 'all';
+$fStatus = $_GET['fStatus'] ?? 'all';
+$fDue = $_GET['fDue'] ?? '';
+
+$filters = [];
+if ($fHei !== 'all' && $fHei !== '') $filters['hei_ID'] = (int)$fHei;
+if ($fCategory !== 'all' && $fCategory !== '') $filters['category'] = $fCategory;
+if ($fPriority !== 'all' && $fPriority !== '') $filters['priority'] = $fPriority;
+if ($fStatus !== 'all' && $fStatus !== '') $filters['status'] = $fStatus;
+if ($fDue !== '') $filters['due'] = $fDue;
 
 ?>
 
@@ -47,15 +70,46 @@ $userName = isset($_SESSION['chedName']) ? $_SESSION['chedName'] : 'Unknown User
         <section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
           <header class="px-5 pt-5 pb-3 border-b">
             <h2 class="font-semibold">Search & Filter</h2>
-            <p class="text-sm text-slate-500">Find tickets across institutions — filter by HEI, assignee, category, priority, status, or due date.</p>
+            <p class="text-sm text-slate-500">Find tickets across institutions — filter by HEI, category, priority, status, or due date.</p>
           </header>
           <div class="p-5 grid md:grid-cols-6 gap-3">
-            <select id="fHei" class="px-3 py-2 rounded border"><option value="all">All HEIs</option></select>
-            <input id="fAssignee" class="px-3 py-2 rounded border" placeholder="Assignee name" />
-            <select id="fCategory" class="px-3 py-2 rounded border"><option value="all">All Categories</option></select>
-            <select id="fPriority" class="px-3 py-2 rounded border"><option value="all">All Priorities</option><option>Urgent</option><option>High</option><option>Medium</option><option>Low</option></select>
-            <select id="fStatus" class="px-3 py-2 rounded border"><option value="all">All Statuses</option><option>Open</option><option>In Progress</option><option>Pending</option><option>Resolved</option><option>Closed</option></select>
-            <input id="fDue" type="date" class="px-3 py-2 rounded border" />
+            <form id="filterForm" method="get" class="contents">
+              <select id="fHei" name="fHei" class="px-3 py-2 rounded border">
+                <option value="all">All HEIs</option>
+                <?php foreach ($heis as $h) { $sel = ($fHei !== 'all' && (int)$fHei === (int)$h['id']) ? 'selected' : ''; ?>
+                <option value="<?php echo htmlspecialchars($h['id'], ENT_QUOTES); ?>" <?php echo $sel; ?>><?php echo htmlspecialchars($h['name'], ENT_QUOTES); ?></option>
+                <?php } ?>
+              </select>
+              <select id="fCategory" name="fCategory" class="px-3 py-2 rounded border">
+                <option value="all">All Categories</option>
+                <option value="Enrollment" <?php echo ($fCategory === 'Enrollment') ? 'selected' : ''; ?>>Enrollment</option>
+                <option value="Faculty" <?php echo ($fCategory === 'Faculty') ? 'selected' : ''; ?>>Faculty</option>
+                <option value="Graduates" <?php echo ($fCategory === 'Graduates') ? 'selected' : ''; ?>>Graduates</option>
+                <option value="Institutional Profile" <?php echo ($fCategory === 'Institutional Profile') ? 'selected' : ''; ?>>Institutional Profile</option>
+              </select>
+
+              <select id="fPriority" name="fPriority" class="px-3 py-2 rounded border">
+                <option value="all">All Priorities</option>
+                <option value="Urgent" <?php echo ($fPriority === 'Urgent') ? 'selected' : ''; ?>>Urgent</option>
+                <option value="High" <?php echo ($fPriority === 'High') ? 'selected' : ''; ?>>High</option>
+                <option value="Medium" <?php echo ($fPriority === 'Medium') ? 'selected' : ''; ?>>Medium</option>
+                <option value="Low" <?php echo ($fPriority === 'Low') ? 'selected' : ''; ?>>Low</option>
+              </select>
+
+              <select id="fStatus" name="fStatus" class="px-3 py-2 rounded border">
+                <option value="all">All Statuses</option>
+                <option value="Open" <?php echo ($fStatus === 'Open') ? 'selected' : ''; ?>>Open</option>
+                <option value="In Progress" <?php echo ($fStatus === 'In Progress') ? 'selected' : ''; ?>>In Progress</option>
+                <option value="Pending" <?php echo ($fStatus === 'Pending') ? 'selected' : ''; ?>>Pending</option>
+                <option value="Resolved" <?php echo ($fStatus === 'Resolved') ? 'selected' : ''; ?>>Resolved</option>
+                <option value="Closed" <?php echo ($fStatus === 'Closed') ? 'selected' : ''; ?>>Closed</option>
+              </select>
+
+              <input id="fDue" name="fDue" type="date" value="<?php echo htmlspecialchars($fDue, ENT_QUOTES); ?>" class="px-3 py-2 rounded border" />
+
+              <button type="submit" class="px-3 py-2 rounded bg-slate-200">Apply</button>
+              <a href="view-tickets.php" class="px-3 py-2 rounded border">Reset</a>
+            </form>
           </div>
         </section>
 
@@ -70,71 +124,96 @@ $userName = isset($_SESSION['chedName']) ? $_SESSION['chedName'] : 'Unknown User
               <div id="pager" class="text-sm text-slate-600"></div>
             </div>
           </header>
-          <div id="ticketList" class="p-5 divide-y"></div>
+
+          <div class="overflow-x-auto">
+              <table class="w-full text-left">
+                <thead class="text-sm text-slate-500 bg-slate-50">
+                  <tr>
+                    <th class="px-6 py-4 font-medium">Title</th>
+                    <th class="px-6 py-4 font-medium">HEI</th>
+                    <th class="px-6 py-4 font-medium">Category</th>
+                    <th class="px-6 py-4 font-medium">Priority</th>
+                    <th class="px-6 py-4 font-medium">Status</th>
+                    <th class="px-6 py-4 font-medium">Due Date</th>
+                    <th class="px-6 py-4 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y">
+                  <?php 
+
+                  $tickets = $con->getTickets($filters);
+                  foreach ($tickets as $ticket): 
+                    // defensive extraction
+                    $id = htmlspecialchars($ticket['id'] ?? $ticket['ticket_ID'] ?? '0', ENT_QUOTES);
+                    $title = htmlspecialchars($ticket['ticket_title'] ?? 'Untitled', ENT_QUOTES);
+                    $heiName = htmlspecialchars($ticket['hei_name'] ?? $ticket['inst_name'] ?? ($ticket['hei_ID'] ?? '—'), ENT_QUOTES);
+                    $category = htmlspecialchars($ticket['ticket_category'] ?? '—', ENT_QUOTES);
+                    $priority = htmlspecialchars($ticket['ticket_priority'] ?? '—', ENT_QUOTES);
+                    $status = htmlspecialchars($ticket['ticket_status'] ?? '—', ENT_QUOTES);
+                    $dueRaw = $ticket['ticket_due_date'] ?? $ticket['due_date'] ?? null;
+                    $due = $dueRaw ? date('m/d/Y', strtotime($dueRaw)) : '—';
+
+                    // badge classes
+                    $priorityClass = match(strtolower($priority)) {
+                      'urgent' => 'bg-red-600 text-white',
+                      'high' => 'bg-blue-600 text-white',
+                      'medium' => 'bg-sky-500 text-white',
+                      'low' => 'bg-gray-200 text-slate-800',
+                      default => 'bg-gray-100 text-slate-700'
+                    };
+                    $statusClass = match(strtolower($status)) {
+                      'open' => 'bg-blue-700 text-white',
+                      'in progress' => 'bg-sky-100 text-sky-800',
+                      'pending' => 'bg-yellow-100 text-amber-800',
+                      'resolved' => 'bg-emerald-100 text-emerald-800',
+                      'closed' => 'bg-slate-200 text-slate-800',
+                      default => 'bg-gray-100 text-slate-700'
+                    };
+                  ?>
+                  <tr class="hover:bg-slate-50">
+                    <td class="px-6 py-4 align-top">
+                      <div class="font-medium text-slate-800"><?php echo $title; ?></div>
+                      <div class="text-xs text-slate-400 mt-1">ID: <?php echo $id; ?></div>
+                    </td>
+                    <td class="px-6 py-4 align-top">
+                      <div class="text-sm text-slate-700"><?php echo $heiName; ?></div>
+                    </td>
+                    <td class="px-6 py-4 align-top">
+                      <div class="inline-flex items-center px-3 py-1 rounded-full bg-slate-50 text-sm text-slate-700 border"><?php echo $category; ?></div>
+                    </td>
+                    <td class="px-6 py-4 align-top">
+                      <span class="inline-flex items-center px-3 py-1 rounded-full text-sm <?php echo $priorityClass; ?>"><?php echo $priority; ?></span>
+                    </td>
+                    <td class="px-6 py-4 align-top">
+                      <span class="inline-flex items-center px-3 py-1 rounded-full text-sm <?php echo $statusClass; ?>"><?php echo $status; ?></span>
+                    </td>
+                    <td class="px-6 py-4 align-top">
+                      <div class="text-sm text-slate-700 flex items-center gap-2">
+                        <i data-lucide="calendar" class="h-4 w-4 text-slate-400"></i>
+                        <?php echo $dueRaw ? date('F j, Y', strtotime($dueRaw)) : '—'; ?>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 align-top">
+                      <a href="ticket-details.php?ticket_id=<?php echo $id; ?>" class="inline-flex items-center gap-2 text-sm text-slate-700 hover:text-slate-900">
+                        <i data-lucide="eye" class="h-4 w-4"></i>
+                        View
+                      </a>
+                    </td>
+                  </tr>
+                  <?php endforeach; ?>
+                  <?php if (empty($tickets)): ?>
+                  <tr>
+                    <td colspan="8" class="px-6 py-8 text-center text-sm text-slate-500">No tickets found.</td>
+                  </tr>
+                  <?php endif; ?>
+                </tbody>
+              </table>
+            </div>
+
         </section>
       </div>
     </main>
   </div>
 
-  <script type="module">
-  // TODO[backend]: Replace mock import with server-provided data (DB queries or API endpoints).
-  // Required data: tickets, heis, paginate
-
-    const fHei = document.getElementById('fHei');
-    const fAssignee = document.getElementById('fAssignee');
-    const fCategory = document.getElementById('fCategory');
-    const fPriority = document.getElementById('fPriority');
-    const fStatus = document.getElementById('fStatus');
-    const fDue = document.getElementById('fDue');
-    const list = document.getElementById('ticketList');
-    const pager = document.getElementById('pager');
-
-    // Populate dropdowns
-    heis.forEach(h => { const o=document.createElement('option'); o.value=h.id; o.textContent=h.name; fHei.appendChild(o); });
-    const cats = Array.from(new Set(tickets.map(t=>t.category)));
-    cats.forEach(c => { const o=document.createElement('option'); o.value=c; o.textContent=c; fCategory.appendChild(o); });
-
-    let state = { page: 1, perPage: 10 };
-
-    function applyFilters() {
-      return tickets.filter(t => {
-        const byHei = fHei.value==='all' || String(t.heiId)===String(fHei.value);
-        const byAss = !fAssignee.value || (t.assigneeName||'').toLowerCase().includes(fAssignee.value.toLowerCase());
-        const byCat = fCategory.value==='all' || t.category===fCategory.value;
-        const byPri = fPriority.value==='all' || t.priority===fPriority.value;
-        const bySta = fStatus.value==='all' || t.status===fStatus.value;
-        const byDue = !fDue.value || (t.dueDate && t.dueDate === fDue.value);
-        return byHei && byAss && byCat && byPri && bySta && byDue;
-      });
-    }
-
-    function badge(cls, text){ return `<span class="inline-flex text-xs px-2 py-1 rounded border ${cls}">${text}</span>`; }
-
-    function render() {
-      const filtered = applyFilters();
-      const { items, page, pages, total } = paginate(filtered, state.page, state.perPage);
-      list.innerHTML = items.map(t => `
-        <div class="py-3 flex items-start gap-3">
-          <div class="flex-1 min-w-0">
-            <p class="font-medium">${t.title}</p>
-            <p class="text-xs text-slate-500">${t.heiName}</p>
-          </div>
-          <div class="flex items-center gap-2">
-            ${badge(t.priority==='Urgent'?'border-rose-300 text-rose-700 bg-rose-50': t.priority==='High'?'border-amber-300 text-amber-700 bg-amber-50':'border-slate-200 text-slate-700 bg-slate-50', t.priority)}
-            ${badge('border-slate-200', t.status)}
-            <a href="./ticket-details.php?ticket_id=${t.id}" class="text-blue-600 hover:underline text-sm">Open</a>
-          </div>
-        </div>
-      `).join('');
-      pager.textContent = `Showing ${items.length} of ${total} • Page ${page} / ${pages}`;
-    }
-
-    [fHei,fAssignee,fCategory,fPriority,fStatus,fDue].forEach(el => el.addEventListener('input', ()=>{ state.page=1; render(); }));
-
-    render();
-    if (window.lucide) lucide.createIcons();
-
-    // TODO[backend]: db.getTickets(filters)
-  </script>
 </body>
 </html>

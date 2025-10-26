@@ -4,10 +4,7 @@
 require_once __DIR__ . '/../includes/dev_logs.php';
 
 // Database connection
-require_once('../classes/database.php');
-
-// Instance of the database class
-$con = new database();
+require_once __DIR__ . '/../includes/database_conn.php';
 
 // Fetch HEI ID from url
 $heiId = $_GET['hei_id'] ?? null;

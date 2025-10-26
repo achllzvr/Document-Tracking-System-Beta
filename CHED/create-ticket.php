@@ -6,6 +6,52 @@ require_once __DIR__ . '/../includes/dev_logs.php';
 // CHED protector
 require_once __DIR__ . '/../includes/ched_protect.php';
 
+// Instance of database connection
+require_once('../includes/database_conn.php');
+
+// SweetAlert Initialization
+$sweetAlertConfig = "";
+
+// Form submission handling
+if (isset($_POST['create_ticket'])) {
+    $heiId = $_POST['hei'];
+    $chedUserID = $_SESSION['chedID'];
+    $title = $_POST['title'];
+    $category = $_POST['category'];
+    $priority = $_POST['priority'];
+    $dueDate = $_POST['due'];
+    $description = $_POST['desc']; 
+
+    // Insert ticket into database
+    $con->createTicket($heiId, $chedUserID, $title, $category, $priority, $dueDate, $description);
+
+    // Check if insertion was successful
+    if ($con) {
+        $sweetAlertConfig = "
+        <script>
+        Swal.fire({
+            icon: 'success',
+            title: 'Ticket Created',
+            text: 'The ticket has been successfully created.',
+            confirmButtonText: 'OK'
+        }).then(() => {
+            window.location.href = './view-tickets.php';
+        });
+        </script>";
+    } else {
+        $sweetAlertConfig = "
+        <script>
+        Swal.fire({
+            icon: 'error',
+            title: 'Creation Failed',
+            text: 'There was an error creating the ticket. Please try again.'
+        });
+        </script>";
+    }
+    
+
+}
+
 ?>
 <!doctype html>
 <html lang="en">
@@ -23,7 +69,7 @@ require_once __DIR__ . '/../includes/ched_protect.php';
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
     <main class="flex-1 p-6 overflow-y-auto">
       <div class="max-w-3xl mx-auto">
-        <form id="ticketForm" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <form  method="post" action="" id="ticketForm" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
           <div class="px-5 pt-5 pb-3 border-b">
             <h2 class="font-semibold">New Ticket</h2>
             <p class="text-sm text-slate-500">Set organization, details, and due date</p>
@@ -31,16 +77,28 @@ require_once __DIR__ . '/../includes/ched_protect.php';
           <div class="p-5 grid md:grid-cols-2 gap-4">
             <div class="md:col-span-2">
               <label for="hei" class="block text-sm font-medium mb-1">Institution</label>
-              <select id="hei" required class="w-full px-3 py-2 rounded border" aria-label="Institution"></select>
-              <!-- TODO[backend]: load HEIs from db.getHEIs() -->
+              <select name="hei" id="hei" required class="w-full px-3 py-2 rounded border" aria-label="Institution">
+
+              <!-- Default option -->
+              <option value="" disabled selected>Select Institution</option>
+
+              <!-- HEI Fetch from database  -->
+              <?php
+              $heis = $con->getHEIs();
+              foreach ($heis as $hei) {
+                  echo '<option value="' . htmlspecialchars($hei['id']) . '">' . htmlspecialchars($hei['name']) . '</option>';
+              }
+              ?>
+
+              </select>
             </div>
             <div class="md:col-span-2">
               <label for="title" class="block text-sm font-medium mb-1">Title</label>
-              <input id="title" required class="w-full px-3 py-2 rounded border" placeholder="e.g., Q1 2026 Enrollment Data Submission" />
+              <input name="title" id="title" required class="w-full px-3 py-2 rounded border" placeholder="e.g., Q1 2026 Enrollment Data Submission" />
             </div>
             <div>
               <label for="category" class="block text-sm font-medium mb-1">Category</label>
-              <select id="category" required class="w-full px-3 py-2 rounded border">
+              <select name="category" id="category" required class="w-full px-3 py-2 rounded border">
                 <option value="Enrollment">Enrollment</option>
                 <option value="Faculty">Faculty</option>
                 <option value="Graduates">Graduates</option>
@@ -49,7 +107,7 @@ require_once __DIR__ . '/../includes/ched_protect.php';
             </div>
             <div>
               <label for="priority" class="block text-sm font-medium mb-1">Priority</label>
-              <select id="priority" required class="w-full px-3 py-2 rounded border">
+              <select name="priority" id="priority" required class="w-full px-3 py-2 rounded border">
                 <option>Urgent</option>
                 <option>High</option>
                 <option selected>Medium</option>
@@ -58,22 +116,16 @@ require_once __DIR__ . '/../includes/ched_protect.php';
             </div>
             <div>
               <label for="due" class="block text-sm font-medium mb-1">Due Date</label>
-              <input id="due" type="date" class="w-full px-3 py-2 rounded border" />
-            </div>
-            <div>
-              <label for="assignee" class="block text-sm font-medium mb-1">Assignee</label>
-              <input id="assignee" list="assigneeList" class="w-full px-3 py-2 rounded border" placeholder="Type assignee name" />
-              <datalist id="assigneeList"></datalist>
-              <!-- TODO[backend]: populate assignees from db.getHEIUsers(heiId) -->
+              <input name="due" id="due" type="date" class="w-full px-3 py-2 rounded border" />
             </div>
             <div class="md:col-span-2">
               <label for="desc" class="block text-sm font-medium mb-1">Description</label>
-              <textarea id="desc" rows="4" class="w-full px-3 py-2 rounded border" placeholder="Describe the task, template to use, and any notes..."></textarea>
+              <textarea name="desc" id="desc" rows="4" class="w-full px-3 py-2 rounded border" placeholder="Describe the task, template to use, and any notes..."></textarea>
             </div>
           </div>
           <div class="px-5 py-4 border-t flex items-center justify-between bg-slate-50">
             <a href="./view-tickets.php" class="text-sm text-slate-600 hover:underline">Cancel</a>
-            <button class="inline-flex items-center gap-2 px-4 py-2 rounded bg-blue-600 text-white">
+            <button name="create_ticket" type="submit" class="inline-flex items-center gap-2 px-4 py-2 rounded bg-blue-600 text-white">
               <i data-lucide="save" class="h-4 w-4"></i>
               Create Ticket
             </button>
@@ -83,67 +135,7 @@ require_once __DIR__ . '/../includes/ched_protect.php';
     </main>
   </div>
 
-  <script type="module">
-  // TODO[backend]: Replace mock import with server-provided data (DB queries or API endpoints).
-  // Required data: tickets, heis, notifications
+  <?php echo $sweetAlertConfig; ?>
 
-    // Populate HEIs
-    const heiSel = document.getElementById('hei');
-    heis.forEach(h => { const o=document.createElement('option'); o.value=h.id; o.textContent=h.name; heiSel.appendChild(o); });
-
-    // Populate assignee datalist from existing ticket assignees (mock)
-    const assigneeList = document.getElementById('assigneeList');
-    Array.from(new Set(tickets.map(t=>t.assigneeName).filter(Boolean))).forEach(n=>{
-      const opt = document.createElement('option'); opt.value = n; assigneeList.appendChild(opt);
-    });
-
-    document.getElementById('ticketForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const heiId = Number(heiSel.value);
-      const hei = heis.find(h=>h.id===heiId);
-      const title = /** @type {HTMLInputElement} */(document.getElementById('title')).value.trim();
-      const category = /** @type {HTMLSelectElement} */(document.getElementById('category')).value;
-      const priority = /** @type {HTMLSelectElement} */(document.getElementById('priority')).value;
-      const dueDate = /** @type {HTMLInputElement} */(document.getElementById('due')).value || null;
-      const assigneeName = /** @type {HTMLInputElement} */(document.getElementById('assignee')).value.trim();
-      const description = /** @type {HTMLTextAreaElement} */(document.getElementById('desc')).value.trim();
-
-      if (!hei || !title) return;
-
-      // Create mock ticket
-      const now = new Date().toISOString();
-      const newId = Math.max(0, ...tickets.map(t=>t.id)) + 1;
-      const newTicket = {
-        id: newId,
-        heiId: hei.id,
-        heiName: hei.name,
-        title,
-        category,
-        priority,
-        status: 'Open',
-        assigneeId: null,
-        assigneeName: assigneeName || '',
-        dueDate,
-        description,
-        createdBy: 'Maria Santos (CHED)',
-        createdAt: now,
-        updatedAt: now,
-      };
-      tickets.unshift(newTicket);
-
-      // Mock notification
-      notifications.unshift({ id: 'notif-'+newId, userId: 'ched-1', type: 'ticket', title: 'Ticket Created', message: `Created: ${title} (${hei.name})`, read: false, createdAt: now, link: `./ticket-details.php?ticket_id=${newId}` });
-
-      // Notify and redirect
-      Swal.fire({ icon: 'success', title: 'Ticket created (mock)', timer: 1200, showConfirmButton: false }).then(() => {
-        location.href = `./ticket-details.php?ticket_id=${newId}`;
-      });
-
-      // TODO[backend]: db.createTicket({heiId, title, category, priority, dueDate, assignee, description})
-      // TODO[backend]: api.notifications.create({type:'ticket', ...})
-    });
-
-    if (window.lucide) lucide.createIcons();
-  </script>
 </body>
 </html>

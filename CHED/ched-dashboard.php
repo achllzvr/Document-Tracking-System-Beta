@@ -128,17 +128,49 @@ $totalGraduatesUpdates = $con->getTotalGraduatesUpdates();
               <div id="recentTickets" class="p-4 space-y-2">
                 <?php
 
-                // Fetch recent tickets
+                // Fetch recent tickets and render with same card/list style as other pages
                 $recentTickets = $con->getRecentTickets();
                 if (!empty($recentTickets)) {
                   foreach ($recentTickets as $ticket) {
-                    echo '<div class="p-3 rounded-lg border hover:bg-slate-50">';
-                    echo '<p class="font-semibold">[' . htmlspecialchars($ticket['hei_name'] ?? $ticket['inst_name'] ?? 'Unknown') . '] ' . htmlspecialchars($ticket['ticket_title'] ?? $ticket['ticket_category'] ?? 'No title') . '</p>';
-                    echo '<p class="text-xs text-slate-500">Status: ' . htmlspecialchars($ticket['ticket_status'] ?? '-') . ' | Priority: ' . htmlspecialchars($ticket['ticket_priority'] ?? '-') . ' | Created: ' . htmlspecialchars($ticket['ticket_created_at'] ?? $ticket['created_at'] ?? '-') . '</p>';
+                  // normalize ticket id (DB may return ticket_ID or ticket_ID aliased differently)
+                  $ticketIdRaw = $ticket['ticket_ID'] ?? $ticket['ticket_id'] ?? $ticket['id'] ?? $ticket['ticketId'] ?? null;
+                  $ticketId = $ticketIdRaw ? urlencode($ticketIdRaw) : '';
+                  $heiName = htmlspecialchars($ticket['hei_name'] ?? $ticket['inst_name'] ?? 'Unknown');
+                  $title = htmlspecialchars($ticket['ticket_title'] ?? $ticket['ticket_category'] ?? 'No title');
+                  $priority = htmlspecialchars($ticket['ticket_priority'] ?? '-');
+                  $statusRaw = $ticket['ticket_status'] ?? '-';
+                  $statusLabel = htmlspecialchars($statusRaw);
+                  $createdRaw = $ticket['ticket_created_at'] ?? $ticket['created_at'] ?? '';
+                  $createdAt = '-';
+                  if (!empty($createdRaw)) {
+                    $ts = strtotime($createdRaw);
+                    $createdAt = ($ts !== false) ? date('M j, Y H:i', $ts) : htmlspecialchars($createdRaw);
+                  }
+
+                  // status color mapping
+                  $statusClass = 'bg-slate-50 text-slate-600';
+                  $s = strtolower($statusRaw);
+                  if ($s === 'open' || $s === 'new') $statusClass = 'bg-green-100 text-green-800';
+                  elseif ($s === 'pending' || $s === 'in progress') $statusClass = 'bg-yellow-100 text-yellow-800';
+                  elseif ($s === 'closed' || $s === 'resolved') $statusClass = 'bg-slate-100 text-slate-600';
+                  elseif ($s === 'urgent' || $s === 'high') $statusClass = 'bg-red-100 text-red-800';
+
+                  // link to the canonical ticket details page and include ticket_id param
+                  echo '<a href="./ticket-details.php?ticket_id=' . $ticketId . '" class="block p-3 rounded-lg border hover:bg-slate-50 flex items-start gap-4">';
+                    echo '<div class="p-2 rounded-lg bg-blue-50 flex-shrink-0">';
+                    echo '<i data-lucide="ticket" class="h-5 w-5 text-blue-600"></i>';
                     echo '</div>';
+                    echo '<div class="flex-1">';
+                    echo '<p class="font-semibold text-sm" value="' . $ticketId . '">' . $heiName . ' – ' . $title . '</p>';
+                    echo '<p class="text-xs text-slate-500 mt-1">Priority: ' . $priority . ' · Created: ' . $createdAt . '</p>';
+                    echo '</div>';
+                    echo '<div class="flex flex-col items-end gap-2">';
+                    echo '<span class="text-xs px-2 py-1 rounded-full ' . $statusClass . '">' . $statusLabel . '</span>';
+                    echo '</div>';
+                  echo '</a>';
                   }
                 } else {
-                  echo '<p class="text-sm text-slate-500">No recent tickets found.</p>';
+                  echo '<div class="p-4 text-sm text-slate-500">No recent tickets found.</div>';
                 }
 
                 ?>
