@@ -69,8 +69,8 @@ class database{
     function getTotalEnrollmentUpdates(){
         $conn = $this->opencon();
         $stmt = $conn->query("SELECT COUNT(*) as total FROM update_history u 
-                                JOIN enrollment_data e ON u.update_ID = e.enr_udd_id
-                                WHERE e.enr_udd_id >= CURDATE() - INTERVAL WEEKDAY(CURDATE()) DAY");
+                                JOIN enrollment_data e ON u.update_ID = e.enr_udd_ID
+                                WHERE u.updated_at >= CURDATE() - INTERVAL WEEKDAY(CURDATE()) DAY");
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return $result ? $result['total'] : 0;
     }
@@ -79,8 +79,8 @@ class database{
     function getTotalFacultyUpdates(){
         $conn = $this->opencon();
         $stmt = $conn->query("SELECT COUNT(*) as total FROM update_history u 
-                                JOIN faculty_data f ON u.update_ID = f.fac_udd_id
-                                WHERE f.fac_udd_id >= CURDATE() - INTERVAL WEEKDAY(CURDATE()) DAY");
+                                JOIN faculty_data f ON u.update_ID = f.fac_udd_ID
+                                WHERE u.updated_at >= CURDATE() - INTERVAL WEEKDAY(CURDATE()) DAY");
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return $result ? $result['total'] : 0;
     }
@@ -89,8 +89,8 @@ class database{
     function getTotalGraduatesUpdates(){
         $conn = $this->opencon();
         $stmt = $conn->query("SELECT COUNT(*) as total FROM update_history u 
-                                JOIN graduates_data g ON u.update_ID = g.grad_udd_id
-                                WHERE g.grad_udd_id >= CURDATE() - INTERVAL WEEKDAY(CURDATE()) DAY");
+                                JOIN graduates_data g ON u.update_ID = g.grad_udd_ID
+                                WHERE u.updated_at >= CURDATE() - INTERVAL WEEKDAY(CURDATE()) DAY");
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return $result ? $result['total'] : 0;
     }
@@ -134,6 +134,24 @@ class database{
         $stmt = $conn->prepare($query);
         $stmt->execute([$regionId, $typeId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // HEI Functions
+
+    // Account Functions
+
+    // HEI Login
+    function loginHEIUser($email, $password){
+        $conn = $this->opencon();
+        $stmt = $conn->prepare("SELECT hei_user_ID, hei_ID, hei_first_name, hei_last_name, hei_role, hei_password FROM HEI_user WHERE hei_email = ?");
+        $stmt->execute([$email]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($user && password_verify($password, $user['hei_password'])) {
+            return $user;
+        } else {
+            return false;
+        }
     }
 
     /*

@@ -1,4 +1,12 @@
-<?php // Front-end first; no DB calls. ?>
+<?php
+  
+// import dev error output
+require_once __DIR__ . '/../includes/dev_logs.php';
+
+// HEI protector
+require_once __DIR__ . '/../includes/hei_protect.php';
+
+?>
 <!doctype html>
 <html lang="en">
 <head>
@@ -67,100 +75,5 @@
     </div>
   </div>
 
-  <script type="module">
-  import { tickets, templates, comments } from '../assets/mock/mock-data.js';
-
-    // Determine current HEI by param or ticket default
-    const params = new URLSearchParams(location.search);
-    const currentHeiId = Number(params.get('hei_id')) || tickets[0]?.heiId || heis[0]?.id;
-    const myTickets = tickets.filter(t => t.heiId === currentHeiId);
-
-    const fCategory = document.getElementById('fCategory');
-    const fPriority = document.getElementById('fPriority');
-    const fStatus = document.getElementById('fStatus');
-    const list = document.getElementById('ticketList');
-    const pager = document.getElementById('pager');
-
-    // Populate categories
-    Array.from(new Set(myTickets.map(t=>t.category))).forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; fCategory.appendChild(o); });
-
-    let state = { page: 1, perPage: 10 };
-    function applyFilters(){
-      return myTickets.filter(t =>
-        (fCategory.value==='all'||t.category===fCategory.value) &&
-        (fPriority.value==='all'||t.priority===fPriority.value) &&
-        (fStatus.value==='all'||t.status===fStatus.value)
-      );
-    }
-    function render(){
-      const filtered = applyFilters();
-      const total = filtered.length; const pages = Math.max(1, Math.ceil(total/state.perPage));
-      const clamped = Math.min(Math.max(1, state.page), pages); const start=(clamped-1)*state.perPage; const items=filtered.slice(start,start+state.perPage);
-      pager.textContent = `Showing ${items.length} of ${total} • Page ${clamped}/${pages}`;
-      list.innerHTML = items.map(t => `
-        <div class="py-3 flex items-start gap-3">
-          <div class="flex-1 min-w-0">
-            <p class="font-medium">${t.title}</p>
-            <p class="text-xs text-slate-500">Due: ${t.dueDate || '-'}</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <a class="text-blue-600 hover:underline text-sm" href="./ticket-details.php?ticket_id=${t.id}">Open</a>
-            <a class="text-slate-700 text-sm inline-flex items-center gap-1 px-2 py-1 rounded border hover:bg-slate-50" href="#" data-action="download" data-id="${t.id}"><i data-lucide="download" class="h-4 w-4"></i> Template</a>
-            <button class="text-sm inline-flex items-center gap-1 px-2 py-1 rounded bg-emerald-600 text-white" data-action="upload" data-id="${t.id}"><i data-lucide="upload" class="h-4 w-4"></i> Upload</button>
-          </div>
-        </div>`).join('');
-      if (window.lucide) lucide.createIcons();
-    }
-    [fCategory,fPriority,fStatus].forEach(el=>el.addEventListener('input',()=>{state.page=1;render();}));
-    render();
-
-    // Download template (mock link): pick the first template matching category
-    list.addEventListener('click',(e)=>{
-      const a = e.target.closest('[data-action="download"]');
-      const b = e.target.closest('[data-action="upload"]');
-      if (a){ e.preventDefault(); const id = Number(a.dataset.id); const t = myTickets.find(x=>x.id===id); const tpl = templates.find(tp=>tp.category===t?.category) || templates[0]; if (tpl){ window.open(tpl.file || '#', '_blank'); } return; }
-      if (b){ e.preventDefault(); const id = Number(b.dataset.id); openUpload(id); return; }
-    });
-
-    // Upload modal logic using SheetJS
-    const modal = document.getElementById('uploadModal');
-    const modalClose = document.getElementById('uploadClose');
-    const fileInput = document.getElementById('fileInput');
-    const gridHead = document.getElementById('gridHead');
-    const gridBody = document.getElementById('gridBody');
-    const mockSubmit = document.getElementById('mockSubmit');
-    let currentTicketId = null; let parsedRows = [];
-
-    function openUpload(ticketId){ currentTicketId = ticketId; modal.classList.remove('hidden'); fileInput.value=''; gridHead.innerHTML=''; gridBody.innerHTML=''; }
-    function closeUpload(){ modal.classList.add('hidden'); }
-    modalClose.addEventListener('click', closeUpload);
-    modal.addEventListener('click', (e)=>{ if (e.target===modal) closeUpload(); });
-
-    fileInput.addEventListener('change', async (e) => {
-      const file = e.target.files?.[0]; if (!file) return;
-      const data = await file.arrayBuffer();
-      const wb = XLSX.read(data, { type:'array' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
-      // Render grid (first 100 rows)
-      parsedRows = json.slice(0, 100);
-      const header = parsedRows[0] || [];
-      gridHead.innerHTML = `<tr>${header.map(h=>`<th class='px-2 py-1 text-left border-b'>${String(h||'')}</th>`).join('')}</tr>`;
-      gridBody.innerHTML = parsedRows.slice(1).map(r=>`<tr>${header.map((_,i)=>`<td class='px-2 py-1 border-b'>${String(r[i]??'')}</td>`).join('')}</tr>`).join('');
-    });
-
-    mockSubmit.addEventListener('click', () => {
-      if (!currentTicketId){ closeUpload(); return; }
-      // Create a mock ETL job result and a comment
-      const t = myTickets.find(x=>x.id===currentTicketId);
-      const now = new Date().toISOString();
-  comments.push({ id: Math.random(), ticketId: t.id, userId: t.assigneeId || 0, userName: 'You', userRole: 'HEI', content: 'Uploaded template (mock).', createdAt: now });
-      closeUpload();
-      Swal.fire({ icon: 'success', title: 'Upload simulated', timer: 1200, showConfirmButton: false });
-      // TODO[backend]: POST to tickets/upload-data.php and show actual ETL summary
-    });
-
-    // TODO[backend]: fetch tickets for logged-in HEI user
-  </script>
 </body>
 </html>
