@@ -1,4 +1,12 @@
-<?php // Front-end first; no DB calls. ?>
+<?php
+
+// import dev error output
+require_once __DIR__ . '/../includes/dev_logs.php';
+
+// CHED protector
+require_once __DIR__ . '/../includes/ched_protect.php';
+
+?>
 <!doctype html>
 <html lang="en">
 <head>

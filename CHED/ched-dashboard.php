@@ -1,27 +1,10 @@
 <?php
 
-// Development: show errors so we can see what causes HTTP 500 locally
-ini_set('display_errors', '1');
-ini_set('display_startup_errors', '1');
-error_reporting(E_ALL);
+// import dev error output
+require_once __DIR__ . '/../includes/dev_logs.php';
 
-// Start the session
-session_start();
-
-// Check for existing session
-if (!isset($_SESSION['chedID']) || isset($_SESSION['heiID'])) {
-  
-  if (!isset($_SESSION['chedID'])) {
-    // If a CHED user is logged in, redirect to CHED dashboard
-    header("Location: ../php/ched_login.php");
-    exit();
-  } elseif (isset($_SESSION['heiID'])) {
-    // If an HEI user is logged in, redirect to HEI dashboard
-    header("Location: ../php/hei_login.php");
-    exit();
-  }
-
-}
+// CHED protector
+require_once __DIR__ . '/../includes/ched_protect.php';
 
 // Database connection
 require_once('../classes/database.php');
