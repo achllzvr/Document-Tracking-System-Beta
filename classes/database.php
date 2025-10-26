@@ -136,6 +136,26 @@ class database{
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    // Institution Profile Page Functions
+
+    // Fetch Institution Profile by HEI ID
+    function getInstitutionProfile($heiId){
+        $conn = $this->opencon();
+        $sql = "SELECT i.*,
+                CONCAT(region_number, ' - ', r.region_division) AS region_name,
+                it.inst_type_desc,
+                iht.title_name AS inst_head_title
+        FROM institutional_profile_data i
+        JOIN national_regions r ON r.region_ID = i.inst_region
+        JOIN institution_type it ON it.inst_type_ID = i.inst_type
+        JOIN institution_head_title iht ON iht.title_ID = i.inst_head_title
+        WHERE i.hei_ID = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([$heiId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row;
+    }
+
     // HEI Functions
 
     // Account Functions
