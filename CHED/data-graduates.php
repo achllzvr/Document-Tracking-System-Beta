@@ -95,7 +95,8 @@
   </div>
 
   <script type="module">
-    import { heis, graduatesData, paginate } from '../assets/mock/mock-data.js';
+  // TODO[backend]: Replace mock import with server-provided data (DB queries or API endpoints).
+  // Required data: heis, graduatesData, paginate
     // TODO[backend]: Replace with db.getGraduatesData(filters) and server-side export endpoints
 
     const fHei = document.getElementById('fHei');

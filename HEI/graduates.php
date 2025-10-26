@@ -67,7 +67,8 @@
   </div>
 
   <script type="module">
-  import { graduatesData, heis } from '../assets/mock/mock-data.js';
+  // TODO[backend]: Replace mock import with server-provided data (DB queries or API endpoints).
+  // Required data: graduatesData, heis
 
     const params = new URLSearchParams(location.search);
     const heiId = Number(params.get('hei_id')) || 1;

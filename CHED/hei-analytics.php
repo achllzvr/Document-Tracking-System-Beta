@@ -87,7 +87,8 @@
   </div>
 
   <script type="module">
-    import { heis, regions, enrollmentData, facultyData, graduatesData, tickets } from '../assets/mock/mock-data.js';
+  // TODO[backend]: Replace mock import with server-provided data (DB queries or API endpoints).
+  // Required data: heis, regions, enrollmentData, facultyData, graduatesData, tickets
     // TODO[backend]: db.getAnalyticsAggregates(filters)
 
     // Elements
