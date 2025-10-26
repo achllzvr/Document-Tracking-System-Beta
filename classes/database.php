@@ -186,7 +186,7 @@ class database{
 
     Authentication & Account
     ------------------------
-    // function loginHEIUser($email, $password)
+    DONE // function loginHEIUser($email, $password)
     // function createCHEDUser($data)
     // function createHEIUser($heiId, $data)
     // function updateUser($userId, $fields)
@@ -214,7 +214,7 @@ class database{
     HEI / Institutions
     -------------------
     // function getHEIs($filters = [])
-    // function getInstitutionProfile($heiId)
+    DONE // function getInstitutionProfile($heiId)
     // function updateInstitutionProfile($heiId, $data)
 
     Enrollment / Faculty / Graduates (CRUD)
