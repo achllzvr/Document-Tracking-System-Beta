@@ -21,8 +21,11 @@ if (session_status() === PHP_SESSION_NONE) session_start();
   ?>
     <a class="block px-3 py-2 rounded hover:bg-slate-50" href="/PRISM/HEI/hei-dashboard.php">Dashboard</a>
     <a class="block px-3 py-2 rounded hover:bg-slate-50" href="/PRISM/HEI/view-tickets.php">Tickets</a>
-    <a class="block px-3 py-2 rounded hover:bg-slate-50" href="/PRISM/HEI/data-submissions.php">Data Submissions</a>
-    <a class="block px-3 py-2 rounded hover:bg-slate-50" href="/PRISM/HEI/analytics.php">Analytics</a>
+    <a class="block px-3 py-2 rounded hover:bg-slate-50" href="/PRISM/HEI/enrollment.php">Enrollment</a>
+    <a class="block px-3 py-2 rounded hover:bg-slate-50" href="/PRISM/HEI/faculty.php">Faculty</a>
+    <a class="block px-3 py-2 rounded hover:bg-slate-50" href="/PRISM/HEI/graduates.php">Graduates</a>
+    <a class="block px-3 py-2 rounded hover:bg-slate-50" href="/PRISM/HEI/hei-analytics.php">Analytics</a>
+    <a class="block px-3 py-2 rounded hover:bg-slate-50" href="/PRISM/HEI/institution-profile.php">Institution Profile</a>
   <?php
     } else {
     // Guest view — do not redirect from an include
