@@ -136,4 +136,134 @@ class database{
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /*
+    ======================================================================
+    TODO: Missing backend functions (stubs / signatures) required by pages
+    ======================================================================
+
+    Follow the same pattern used above (use $this->opencon(), prepared
+    statements, return associative arrays or booleans). Implement these
+    functions below when ready. They are grouped by feature/page and
+    include suggested signatures and short notes.
+
+    Authentication & Account
+    ------------------------
+    // function loginHEIUser($email, $password)
+    // function createCHEDUser($data)
+    // function createHEIUser($heiId, $data)
+    // function updateUser($userId, $fields)
+    // function deleteUser($userId)
+    // function resetPasswordCHED($userId, $newPassword)
+    // function resetPasswordHEI($userId, $newPassword)
+
+    Tickets (CHED & HEI)
+    ---------------------
+    // function getTickets($filters = [], $page = 1, $perPage = 25)
+    // function getTicketById($ticketId)
+    // function createTicket($data)
+    // function updateTicket($ticketId, $data)
+    // function changeTicketStatus($ticketId, $status, $updatedBy)
+    // function assignTicket($ticketId, $assigneeId)
+
+    Comments & Notifications
+    ------------------------
+    // function getCommentsForTicket($ticketId)
+    // function addComment($ticketId, $userType, $userId, $content)
+    // function getNotificationsForUser($userId, $userType)
+    // function createNotification($userId, $type, $title, $message, $link)
+    // function markNotificationRead($notifId)
+
+    HEI / Institutions
+    -------------------
+    // function getHEIs($filters = [])
+    // function getInstitutionProfile($heiId)
+    // function updateInstitutionProfile($heiId, $data)
+
+    Enrollment / Faculty / Graduates (CRUD)
+    ---------------------------------------
+    // Enrollment
+    // function listEnrollmentData($filters = [], $page = 1, $perPage = 25)
+    // function getEnrollmentRow($enrollId)
+    // function createEnrollmentRow($heiId, $rowData)
+    // function updateEnrollmentRow($enrollId, $data)
+    // function deleteEnrollmentRow($enrollId)
+
+    // Faculty
+    // function listFacultyData($filters = [], $page = 1, $perPage = 25)
+    // function getFacultyRow($facultyId)
+    // function createFacultyRow($heiId, $data)
+    // function updateFacultyRow($facultyId, $data)
+    // function deleteFacultyRow($facultyId)
+
+    // Graduates
+    // function listGraduatesData($filters = [], $page = 1, $perPage = 25)
+    // function getGraduatesRow($graduatesId)
+    // function createGraduatesRow($heiId, $data)
+    // function updateGraduatesRow($graduatesId, $data)
+    // function deleteGraduatesRow($graduatesId)
+
+    Templates & File uploads
+    ------------------------
+    // function getTemplates()
+    // function uploadTemplate($meta, $fileTmpPath)
+    // function deleteTemplate($templateId)
+    // function handleFileUpload($heiId, $ticketId, $uploadedFile)
+
+    Code tables (for CHED CodeTables page)
+    --------------------------------------
+    // function getEmploymentCodes()
+    // function createEmploymentCode($desc)
+    // function updateEmploymentCode($id, $desc)
+    // function deleteEmploymentCode($id)
+    // function getDegreeCodes(), getDisciplineCodes(), getInstitutionTypes(), getOwnershipForms(), getRegions()
+    // function getCodeTables()  // returns all code tables in one call
+
+    HEI users & Sub-users
+    ---------------------
+    // function getUsersForHEI($heiId)
+    // function createHEIUser($heiId, $data)
+    // function updateHEIUser($userId, $data)
+    // function deleteHEIUser($userId)
+    // function setHEIUserStatus($userId, $active)
+
+    Calendar events
+    ---------------
+    // function getCalendarEvents($heiId)
+    // function createCalendarEvent($heiId, $title, $date, $type, $desc)
+    // function updateCalendarEvent($calendarId, $data)
+    // function deleteCalendarEvent($calendarId)
+
+    Update history & helpers
+    ------------------------
+    // function recordUpdate()  // insert into update_history and return update_ID
+    // function paginateQuery($baseSql, $params, $page, $perPage)
+    // function safeQuery($sql, $params)
+
+    Analytics helpers
+    ------------------
+    // function getEnrollmentAggregates($groupBy, $filters = [])
+    // function getFacultyAggregates($groupBy, $filters = [])
+    // function getGraduatesAggregates($groupBy, $filters = [])
+
+    Attachments & storage
+    ---------------------
+    // function saveUploadRecord($heiId, $ticketId, $filename, $storedPath, $uploadedBy)
+    // function getUploadsForTicket($ticketId)
+
+    Misc / Utilities
+    ----------------
+    // function searchHEIs($query, $page, $perPage)
+    // function searchTickets($query, $filters)
+    // function getRecentActivity($limit = 10)
+
+    ======================================================================
+    Implementation notes:
+    - Use transactions for operations that touch multiple tables (create ticket + comments + notifications).
+    - Call recordUpdate() when modifying domain tables to store *_udd_ID consistently.
+    - Return consistent shapes: arrays for lists, assoc arrays for single rows, int for created IDs, boolean for success/failure.
+    - Always use prepared statements and parameter binding (PDO) as in existing functions.
+    ======================================================================
+
+    */
+
 }
