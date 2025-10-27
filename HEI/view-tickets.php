@@ -74,7 +74,7 @@ if ($heiUserId) {
           <div class="p-5 grid md:grid-cols-4 gap-3">
             <form method="get" class="contents">
               <input type="hidden" name="hei_id" value="<?php echo htmlspecialchars($heiUserId ?? $heiId); ?>" />
-              <select id="fCategory" name="fCategory" class="px-3 py-2 rounded border">
+              <select id="fCategory" name="fCategory" class="hei-select">
                 <option value="all">All Categories</option>
                 <option value="Enrollment" <?php echo ($fCategory === 'Enrollment') ? 'selected' : ''; ?>>Enrollment</option>
                 <option value="Faculty" <?php echo ($fCategory === 'Faculty') ? 'selected' : ''; ?>>Faculty</option>
@@ -82,7 +82,7 @@ if ($heiUserId) {
                 <option value="Institutional Profile" <?php echo ($fCategory === 'Institutional Profile') ? 'selected' : ''; ?>>Institutional Profile</option>
               </select>
 
-              <select id="fPriority" name="fPriority" class="px-3 py-2 rounded border">
+              <select id="fPriority" name="fPriority" class="hei-select">
                 <option value="all">All Priorities</option>
                 <option value="Urgent" <?php echo ($fPriority === 'Urgent') ? 'selected' : ''; ?>>Urgent</option>
                 <option value="High" <?php echo ($fPriority === 'High') ? 'selected' : ''; ?>>High</option>
@@ -90,7 +90,7 @@ if ($heiUserId) {
                 <option value="Low" <?php echo ($fPriority === 'Low') ? 'selected' : ''; ?>>Low</option>
               </select>
 
-              <select id="fStatus" name="fStatus" class="px-3 py-2 rounded border">
+              <select id="fStatus" name="fStatus" class="hei-select">
                 <option value="all">All Statuses</option>
                 <option value="Open" <?php echo ($fStatus === 'Open') ? 'selected' : ''; ?>>Open</option>
                 <option value="In Progress" <?php echo ($fStatus === 'In Progress') ? 'selected' : ''; ?>>In Progress</option>
@@ -99,10 +99,10 @@ if ($heiUserId) {
                 <option value="Closed" <?php echo ($fStatus === 'Closed') ? 'selected' : ''; ?>>Closed</option>
               </select>
 
-              <input id="fDue" name="fDue" type="date" value="<?php echo htmlspecialchars($fDue, ENT_QUOTES); ?>" class="px-3 py-2 rounded border" />
+              <input id="fDue" name="fDue" type="date" value="<?php echo htmlspecialchars($fDue, ENT_QUOTES); ?>" class="hei-input" />
 
-              <button type="submit" class="px-3 py-2 rounded bg-slate-200">Apply</button>
-              <a href="view-tickets.php" class="px-3 py-2 rounded border">Reset</a>
+              <button type="submit" class="hei-btn">Apply</button>
+              <a href="view-tickets.php" class="hei-btn hei-btn-outline">Reset</a>
             </form>
           </div>
         </section>
@@ -146,19 +146,24 @@ if ($heiUserId) {
                     $dueRaw = $ticket['ticket_due_date'] ?? $ticket['due_date'] ?? null;
                     // badge classes
                     $priorityClass = match(strtolower($priority)) {
-                      'urgent' => 'bg-red-600 text-white',
-                      'high' => 'bg-blue-600 text-white',
-                      'medium' => 'bg-sky-500 text-white',
-                      'low' => 'bg-gray-200 text-slate-800',
-                      default => 'bg-gray-100 text-slate-700'
+                      'urgent' => 'prism-badge prism-badge-status-urgent',
+                      'high' => 'prism-badge prism-badge-status-high',
+                      'medium' => 'prism-badge prism-badge-status-medium',
+                      'low' => 'prism-badge prism-badge-status-low',
+                      default => 'prism-badge prism-badge-status-default'
                     };
                     $statusClass = match(strtolower($status)) {
-                      'open' => 'bg-blue-700 text-white',
-                      'in progress' => 'bg-sky-100 text-sky-800',
-                      'pending' => 'bg-yellow-100 text-amber-800',
-                      'resolved' => 'bg-emerald-100 text-emerald-800',
-                      'closed' => 'bg-slate-200 text-slate-800',
-                      default => 'bg-gray-100 text-slate-700'
+                      'open' => 'prism-badge prism-badge-status-open',
+                      'new' => 'prism-badge prism-badge-status-new',
+                      'in progress' => 'prism-badge prism-badge-status-inprogress',
+                      'pending' => 'prism-badge prism-badge-status-pending',
+                      'resolved' => 'prism-badge prism-badge-status-resolved',
+                      'closed' => 'prism-badge prism-badge-status-closed',
+                      'urgent' => 'prism-badge prism-badge-status-urgent',
+                      'high' => 'prism-badge prism-badge-status-high',
+                      'medium' => 'prism-badge prism-badge-status-medium',
+                      'low' => 'prism-badge prism-badge-status-low',
+                      default => 'prism-badge prism-badge-status-default'
                     };
                 ?>
                 <tr class="hover:bg-slate-50">
@@ -170,10 +175,10 @@ if ($heiUserId) {
                     <div class="inline-flex items-center px-3 py-1 rounded-full bg-slate-50 text-sm text-slate-700 border"><?php echo $category; ?></div>
                   </td>
                   <td class="px-6 py-4 align-top">
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm <?php echo $priorityClass; ?>"><?php echo $priority; ?></span>
+                    <span class="<?php echo $priorityClass; ?>"><?php echo $priority; ?></span>
                   </td>
                   <td class="px-6 py-4 align-top">
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm <?php echo $statusClass; ?>"><?php echo $status; ?></span>
+                    <span class="<?php echo $statusClass; ?>"><?php echo $status; ?></span>
                   </td>
                   <td class="px-6 py-4 align-top">
                     <div class="text-sm text-slate-700 flex items-center gap-2">

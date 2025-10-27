@@ -45,38 +45,38 @@ if ($recentTickets) {
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="min-h-screen flex flex-col bg-gray-50 text-slate-800">
+<body class="hei-min-h-screen">
   <?php require_once __DIR__ . '/../includes/header.php'; ?>
 
-  <div class="flex-1 flex">
+  <div class="hei-flex-1">
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
 
-    <main class="flex-1 p-6 overflow-y-auto">
-      <div class="max-w-7xl mx-auto space-y-6">
-        <section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-          <header class="px-5 pt-5 pb-3 border-b">
-            <h2 class="font-semibold">Overview</h2>
-            <p class="text-sm text-slate-500">Your ticket workload and latest comments</p>
+    <main class="hei-main">
+      <div class="hei-max-w-7xl hei-space-y-6">
+        <section class="hei-card">
+          <header class="hei-card-header">
+            <h2 class="hei-font-semibold">Overview</h2>
+            <p class="hei-text-sm">Your ticket workload and latest comments</p>
           </header>
-          <div id="stats" class="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div id="stats" class="p-5 hei-grid hei-md-grid-cols-3 hei-gap-4">
             <?php if ($stats): ?>
-              <div class="p-5 rounded-xl border shadow-sm">
-                <div class="flex items-center justify-between">
+              <div class="p-5 hei-rounded-xl border hei-shadow-sm">
+                <div class="hei-items-center hei-justify-between" style="display: flex;">
                   <div>
-                    <p class="text-sm text-slate-500">Open/Pending</p>
+                    <p class="hei-text-sm">Open/Pending</p>
                     <p class="text-2xl"><?php echo (int)($stats['open'] + $stats['pending']); ?></p>
                   </div>
-                  <div class="p-3 rounded-lg bg-amber-500"><i data-lucide="ticket" class="h-6 w-6 text-white"></i></div>
+                  <div class="p-3 hei-rounded-xl" style="background: #f59e42;"><i data-lucide="ticket" class="h-6 w-6" style="color: #fff;"></i></div>
                 </div>
               </div>
 
-              <div class="p-5 rounded-xl border shadow-sm">
-                <div class="flex items-center justify-between">
+              <div class="p-5 hei-rounded-xl border hei-shadow-sm">
+                <div class="hei-items-center hei-justify-between" style="display: flex;">
                   <div>
-                    <p class="text-sm text-slate-500">Urgent/High</p>
+                    <p class="hei-text-sm">Urgent/High</p>
                     <p class="text-2xl"><?php echo 0; /* TODO: derive urgent/high from priorities */ ?></p>
                   </div>
-                  <div class="p-3 rounded-lg bg-rose-500"><i data-lucide="alert-triangle" class="h-6 w-6 text-white"></i></div>
+                  <div class="p-3 hei-rounded-xl" style="background: #f43f5e;"><i data-lucide="alert-triangle" class="h-6 w-6" style="color: #fff;"></i></div>
                 </div>
               </div>
 
@@ -95,49 +95,49 @@ if ($recentTickets) {
           </div>
         </section>
 
-        <div class="grid lg:grid-cols-2 gap-6">
-          <section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-            <header class="px-5 pt-5 pb-3 border-b">
-              <h3 class="font-semibold">Recent Tickets</h3>
-              <p class="text-sm text-slate-500">Most recent updates assigned to you</p>
+        <div class="hei-grid hei-lg-grid-cols-2 hei-gap-6">
+          <section class="hei-card">
+            <header class="hei-card-header">
+              <h3 class="hei-font-semibold">Recent Tickets</h3>
+              <p class="hei-text-sm">Most recent updates assigned to you</p>
             </header>
-            <div id="recentTickets" class="p-4 divide-y">
+            <div id="recentTickets" class="hei-p-4 hei-divide-y">
               <?php if (!empty($recentTickets)): ?>
                 <?php foreach ($recentTickets as $t): ?>
-                  <a class="block py-3" href="./ticket-details.php?ticket_id=<?php echo htmlspecialchars($t['id']); ?>">
-                    <div class="flex items-start gap-3">
-                      <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium"><?php echo htmlspecialchars($t['ticket_title'] ?? $t['ticket_title'] ?? ($t['ticket_title'] ?? 'Untitled')); ?></p>
-                        <p class="text-xs text-slate-500">Due: <?php echo htmlspecialchars($t['ticket_due_date'] ?? '-'); ?></p>
+                  <a class="hei-block hei-py-3" href="./ticket-details.php?ticket_id=<?php echo htmlspecialchars($t['id']); ?>">
+                    <div class="hei-flex hei-items-start hei-gap-3">
+                      <div class="hei-flex-1 hei-min-w-0">
+                        <p class="hei-text-sm hei-font-medium"><?php echo htmlspecialchars($t['ticket_title'] ?? $t['ticket_title'] ?? ($t['ticket_title'] ?? 'Untitled')); ?></p>
+                        <p class="hei-text-xs hei-text-muted">Due: <?php echo htmlspecialchars($t['ticket_due_date'] ?? '-'); ?></p>
                       </div>
-                      <span class="inline-flex text-xs px-2 py-1 rounded border"><?php echo htmlspecialchars($t['ticket_status'] ?? $t['ticket_status'] ?? ''); ?></span>
+                      <span class="hei-inline-flex hei-text-xs hei-px-2 hei-py-1 hei-rounded hei-border"><?php echo htmlspecialchars($t['ticket_status'] ?? $t['ticket_status'] ?? ''); ?></span>
                     </div>
                   </a>
                 <?php endforeach; ?>
               <?php else: ?>
-                <div class="p-4 text-sm text-slate-500">No tickets found.</div>
+                <div class="hei-p-4 hei-text-sm hei-text-muted">No tickets found.</div>
               <?php endif; ?>
             </div>
-            <div class="p-4 border-t">
-              <a href="./view-tickets.php" class="text-sm inline-flex items-center gap-2 px-3 py-2 rounded border hover:bg-slate-50">View tickets</a>
+            <div class="hei-p-4 hei-border-t">
+              <a href="./view-tickets.php" class="hei-btn">View tickets</a>
             </div>
           </section>
 
-          <section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-            <header class="px-5 pt-5 pb-3 border-b">
-              <h3 class="font-semibold">Recent Comments</h3>
-              <p class="text-sm text-slate-500">Latest discussion on your tickets</p>
+          <section class="hei-card">
+            <header class="hei-card-header">
+              <h3 class="hei-font-semibold">Recent Comments</h3>
+              <p class="hei-text-sm">Latest discussion on your tickets</p>
             </header>
-            <div id="recentComments" class="p-4 divide-y">
+            <div id="recentComments" class="hei-p-4 hei-divide-y">
               <?php if (!empty($recentComments)): ?>
                 <?php foreach ($recentComments as $c): ?>
-                  <div class="py-3">
-                    <p class="text-sm"><span class="font-medium"><?php echo htmlspecialchars($c['user_ID'] ?? $c['user_ID']); ?></span> — <?php echo htmlspecialchars($c['comment'] ?? $c['comment'] ?? $c['content'] ?? ''); ?></p>
-                    <p class="text-xs text-slate-500"><?php echo htmlspecialchars(date('M j, Y g:ia', strtotime($c['created_at']))); ?></p>
+                  <div class="hei-py-3">
+                    <p class="hei-text-sm"><span class="hei-font-medium"><?php echo htmlspecialchars($c['user_ID'] ?? $c['user_ID']); ?></span> — <?php echo htmlspecialchars($c['comment'] ?? $c['comment'] ?? $c['content'] ?? ''); ?></p>
+                    <p class="hei-text-xs hei-text-muted"><?php echo htmlspecialchars(date('M j, Y g:ia', strtotime($c['created_at']))); ?></p>
                   </div>
                 <?php endforeach; ?>
               <?php else: ?>
-                <div class="p-4 text-sm text-slate-500">No comments yet.</div>
+                <div class="hei-p-4 hei-text-sm hei-text-muted">No comments yet.</div>
               <?php endif; ?>
             </div>
           </section>

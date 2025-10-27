@@ -18,52 +18,52 @@ require_once __DIR__ . '/../includes/ched_protect.php';
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
-<body class="min-h-screen flex flex-col bg-gray-50 text-slate-800">
+<body class="ched-min-h-screen">
   <?php $showHEI = false; require_once __DIR__ . '/../includes/header.php'; ?>
 
-  <div class="flex-1 flex">
+  <div class="ched-flex-1">
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
 
-    <main class="flex-1 p-6 overflow-y-auto">
-      <div class="max-w-7xl mx-auto space-y-6">
-        <section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-          <header class="px-5 pt-5 pb-3 border-b flex items-center justify-between">
+    <main class="ched-main">
+      <div class="ched-max-w-7xl ched-space-y-6">
+        <section class="ched-card">
+          <header class="ched-card-header ched-items-center ched-justify-between" style="display: flex;">
             <div>
-              <h2 class="font-semibold">Filters</h2>
-              <p class="text-sm text-slate-500">Filter and browse enrollment records across HEIs</p>
+              <h2 class="ched-font-semibold">Filters</h2>
+              <p class="ched-text-sm">Filter and browse enrollment records across HEIs</p>
             </div>
-            <div class="flex items-center gap-2">
-              <button id="exportCsv" class="px-3 py-2 rounded border">Export CSV</button>
-              <button id="exportXlsx" class="px-3 py-2 rounded bg-blue-600 text-white">Export XLSX</button>
+            <div class="ched-items-center ched-gap-2" style="display: flex;">
+              <button id="exportCsv" class="ched-btn ched-btn-outline">Export CSV</button>
+              <button id="exportXlsx" class="ched-btn ched-btn-primary">Export XLSX</button>
             </div>
           </header>
-          <div class="p-5 grid md:grid-cols-6 gap-3">
+          <div class="p-5 ched-grid ched-md-grid-cols-6 ched-gap-3">
             <div class="col-span-2">
-              <label class="block text-xs">HEI</label>
-              <select id="fHei" class="w-full px-2 py-1 rounded border"></select>
+              <label class="ched-text-xs">HEI</label>
+              <select id="fHei" class="ched-select"></select>
             </div>
             <div>
-              <label class="block text-xs">Academic Year</label>
-              <input id="fAy" type="number" min="2000" max="2100" class="w-full px-2 py-1 rounded border" placeholder="e.g. 2025" />
+              <label class="ched-text-xs">Academic Year</label>
+              <input id="fAy" type="number" min="2000" max="2100" class="ched-input" placeholder="e.g. 2025" />
             </div>
             <div>
-              <label class="block text-xs">Term</label>
-              <select id="fTerm" class="w-full px-2 py-1 rounded border"><option value="">All</option><option>1</option><option>2</option></select>
+              <label class="ched-text-xs">Term</label>
+              <select id="fTerm" class="ched-select"><option value="">All</option><option>1</option><option>2</option></select>
             </div>
             <div>
-              <label class="block text-xs">Year Level</label>
-              <select id="fYear" class="w-full px-2 py-1 rounded border"><option value="">All</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+              <label class="ched-text-xs">Year Level</label>
+              <select id="fYear" class="ched-select"><option value="">All</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
             </div>
             <div>
-              <label class="block text-xs">Sex</label>
-              <select id="fSex" class="w-full px-2 py-1 rounded border"><option value="">All</option><option value="m">Male</option><option value="f">Female</option></select>
+              <label class="ched-text-xs">Sex</label>
+              <select id="fSex" class="ched-select"><option value="">All</option><option value="m">Male</option><option value="f">Female</option></select>
             </div>
             <div class="md:col-span-3">
-              <label class="block text-xs">Program</label>
-              <input id="fProgram" class="w-full px-2 py-1 rounded border" placeholder="Search program" />
+              <label class="ched-text-xs">Program</label>
+              <input id="fProgram" class="ched-input" placeholder="Search program" />
             </div>
-            <div class="flex items-end">
-              <button id="applyFilters" class="px-3 py-2 rounded bg-blue-600 text-white">Apply</button>
+            <div class="ched-items-end" style="display: flex; align-items: end;">
+              <button id="applyFilters" class="ched-btn ched-btn-primary">Apply</button>
             </div>
           </div>
         </section>

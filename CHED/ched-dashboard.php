@@ -48,37 +48,44 @@ $totalGraduatesUpdates = $con->getTotalGraduatesUpdates();
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   </head>
-  <body class="min-h-screen flex flex-col bg-gray-50 text-slate-800">
+  <body class="ched-min-h-screen">
   <?php $showHEI = false; require_once __DIR__ . '/../includes/header.php'; ?>
 
-    <div class="flex-1 flex">
+  <div class="ched-flex-1">
       <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
 
       <!-- Main -->
-      <main class="flex-1 p-6 overflow-y-auto">
-        <div class="max-w-7xl mx-auto space-y-8">
+      <main class="ched-main">
+        <div class="ched-max-w-7xl ched-space-y-6">
           <!-- Stats cards -->
-          <section id="stats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <section id="stats" class="ched-grid ched-gap-4" style="grid-template-columns: repeat(1, minmax(0, 1fr));">
+            <style>
+              @media (min-width: 1024px) {
+                #stats {
+                  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+                }
+              }
+            </style>
 
             <!-- Total HEIs Card -->
-            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+            <div class="ched-card">
               <div class="p-6">
-                <div class="flex items-center justify-between">
+                <div class="ched-items-center ched-justify-between" style="display: flex;">
                   <div>
-                    <p class="text-sm text-slate-500">Total HEIs</p>
+                    <p class="ched-text-sm">Total HEIs</p>
                     <p class="text-2xl mt-1" id="totalHeis">
                       <?php
                       echo $totalHEIs;
                       ?>
                     </p>
                   </div>
-                  <div class="p-3 rounded-lg bg-blue-500"><i data-lucide="building-2" class="h-6 w-6 text-white"></i></div>
+                  <div class="p-3 ched-rounded-lg" style="background: #3b82f6;"><i data-lucide="building-2" class="h-6 w-6" style="color: #fff;"></i></div>
                 </div>
               </div>
             </div>
 
             <!-- Pending Tickets Card -->
-            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+            <div class="ched-card">
               <div class="p-6">
                 <div class="flex items-center justify-between">
                   <div>
@@ -165,7 +172,14 @@ $totalGraduatesUpdates = $con->getTotalGraduatesUpdates();
                     echo '<p class="text-xs text-slate-500 mt-1">Priority: ' . $priority . ' · Created: ' . $createdAt . '</p>';
                     echo '</div>';
                     echo '<div class="flex flex-col items-end gap-2">';
-                    echo '<span class="text-xs px-2 py-1 rounded-full ' . $statusClass . '">' . $statusLabel . '</span>';
+                    // Map status to ched-badge classes
+                    $badgeClass = 'ched-badge ched-badge-status-default';
+                    $s = strtolower($statusRaw);
+                    if ($s === 'open' || $s === 'new') $badgeClass = 'ched-badge ched-badge-status-open';
+                    elseif ($s === 'pending' || $s === 'in progress') $badgeClass = 'ched-badge ched-badge-status-pending';
+                    elseif ($s === 'closed' || $s === 'resolved') $badgeClass = 'ched-badge ched-badge-status-closed';
+                    elseif ($s === 'urgent' || $s === 'high') $badgeClass = 'ched-badge ched-badge-status-urgent';
+                    echo '<span class="' . $badgeClass . '">' . $statusLabel . '</span>';
                     echo '</div>';
                   echo '</a>';
                   }

@@ -1,0 +1,149 @@
+/* Enhanced global badge styles for status/priority labels (CHED & HEI) */
+.prism-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  padding: 0.25rem 0.85rem;
+  line-height: 1.2;
+  border: none;
+  min-width: 2.5em;
+  justify-content: center;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 2px 0 rgb(16 24 40 / 6%);
+  transition: background 0.2s, color 0.2s;
+}
+/* Status types */
+.prism-badge-status-open, .prism-badge-status-new {
+  background: #d1fae5;
+  color: #047857;
+  border: 1px solid #34d399;
+}
+.prism-badge-status-pending, .prism-badge-status-inprogress {
+  background: #fef9c3;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+.prism-badge-status-closed, .prism-badge-status-resolved {
+  background: #e5e7eb;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+.prism-badge-status-urgent {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+.prism-badge-status-high {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fcd34d;
+}
+.prism-badge-status-medium {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: 1px solid #60a5fa;
+}
+.prism-badge-status-low {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+}
+.prism-badge-status-default {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+}
+/* Global badge styles for status/priority labels (CHED & HEI) */
+.prism-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  line-height: 1.2;
+  border: none;
+  min-width: 2.5em;
+  justify-content: center;
+}
+.prism-badge-status-open, .prism-badge-status-new {
+  background: #bbf7d0;
+  color: #166534;
+}
+.prism-badge-status-pending, .prism-badge-status-inprogress {
+  background: #fef9c3;
+  color: #92400e;
+}
+.prism-badge-status-closed, .prism-badge-status-resolved {
+  background: #e5e7eb;
+  color: #334155;
+}
+.prism-badge-status-urgent, .prism-badge-status-high {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.prism-badge-status-default {
+  background: #f1f5f9;
+  color: #64748b;
+}
+/* Logout button (global) */
+.logout-btn {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  padding: 0.5rem 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s;
+  backdrop-filter: blur(2px);
+}
+.logout-btn:hover {
+  background: #9b201eff;
+  color: #fff;
+  border-color: #811715ff;
+}
+.logout-btn:hover .lucide {
+  color: #fff;
+}
+/* prism-global.css: Styles used globally across PRISM pages */
+
+/* Header gradient animation */
+.prism-header-gradient {
+  background: linear-gradient(270deg, #0038a8, #009ffd, #0038a8);
+  background-size: 600% 600%;
+  animation: prismGradientMove 4s linear infinite;
+}
+@keyframes prismGradientMove {
+  0% {background-position: 0% 50%;}
+  100% {background-position: 100% 50%;}
+}
+
+/* Logout button styles */
+.logout-btn {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  padding: 0.5rem 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s;
+  backdrop-filter: blur(2px);
+}
+.logout-btn:hover {
+  background: #e53935;
+  color: #fff;
+  border-color: #e53935;
+}
+.logout-btn:hover .lucide {
+  color: #fff;
+}

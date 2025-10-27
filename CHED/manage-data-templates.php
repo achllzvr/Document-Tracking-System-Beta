@@ -18,23 +18,23 @@ require_once __DIR__ . '/../includes/ched_protect.php';
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
 </head>
-<body class="min-h-screen flex flex-col bg-gray-50 text-slate-800">
+<body class="ched-min-h-screen">
   <?php $showHEI = false; require_once __DIR__ . '/../includes/header.php'; ?>
-  <div class="flex-1 flex">
+  <div class="ched-flex-1">
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
-    <main class="flex-1 p-6 overflow-y-auto">
-      <div class="max-w-7xl mx-auto space-y-6">
-        <section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-          <header class="px-5 pt-5 pb-3 border-b flex items-center justify-between">
+    <main class="ched-main">
+      <div class="ched-max-w-7xl ched-space-y-6">
+        <section class="ched-card">
+          <header class="ched-card-header ched-items-center ched-justify-between" style="display: flex;">
             <div>
-              <h2 class="font-semibold">Domain Templates</h2>
-              <p class="text-sm text-slate-500">Upload or replace the templates used by HEIs</p>
+              <h2 class="ched-font-semibold">Domain Templates</h2>
+              <p class="ched-text-sm">Upload or replace the templates used by HEIs</p>
             </div>
-            <button id="addTemplate" class="px-3 py-2 rounded bg-blue-600 text-white">Add Template</button>
+            <button id="addTemplate" class="ched-btn ched-btn-primary">Add Template</button>
           </header>
-          <div class="p-5 overflow-x-auto">
-            <table class="min-w-full text-sm">
-              <thead class="text-slate-600 border-b">
+          <div class="p-5 ched-overflow-x-auto">
+            <table class="min-w-full ched-text-sm">
+              <thead class="ched-text-slate-800" style="border-bottom: 1px solid #e5e7eb;">
                 <tr>
                   <th class="py-2 text-left">Name</th>
                   <th class="text-left">Category</th>
@@ -48,17 +48,17 @@ require_once __DIR__ . '/../includes/ched_protect.php';
           </div>
         </section>
 
-        <section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-          <header class="px-5 pt-5 pb-3 border-b flex items-center justify-between">
+        <section class="ched-card">
+          <header class="ched-card-header ched-items-center ched-justify-between" style="display: flex;">
             <div>
-              <h2 class="font-semibold">Column Mappings</h2>
-              <p class="text-sm text-slate-500">Define how uploaded columns map to system fields</p>
+              <h2 class="ched-font-semibold">Column Mappings</h2>
+              <p class="ched-text-sm">Define how uploaded columns map to system fields</p>
             </div>
-            <button id="addMapping" class="px-3 py-2 rounded border">Create Mapping</button>
+            <button id="addMapping" class="ched-btn ched-btn-outline">Create Mapping</button>
           </header>
           <div class="p-5">
-            <div id="mapEmpty" class="text-slate-500 text-sm">No mappings created yet. Click "Create Mapping" to add one.</div>
-            <div id="mapList" class="hidden grid gap-3"></div>
+            <div id="mapEmpty" class="ched-text-sm" style="color: #64748b;">No mappings created yet. Click "Create Mapping" to add one.</div>
+            <div id="mapList" class="hidden ched-grid ched-gap-3"></div>
           </div>
         </section>
       </div>

@@ -17,24 +17,24 @@ require_once __DIR__ . '/../includes/hei_protect.php';
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
-<body class="min-h-screen flex flex-col bg-gray-50 text-slate-800">
+<body class="hei-min-h-screen">
   <?php require_once __DIR__ . '/../includes/header.php'; ?>
 
-  <div class="flex-1 flex">
+  <div class="hei-flex-1">
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
 
-    <main class="flex-1 p-6 overflow-y-auto">
-      <div class="max-w-7xl mx-auto space-y-6">
-        <section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-          <header class="px-5 pt-5 pb-3 border-b flex items-center justify-between">
+    <main class="hei-main">
+      <div class="hei-max-w-7xl hei-space-y-6">
+        <section class="hei-card">
+          <header class="hei-card-header hei-items-center hei-justify-between" style="display: flex;">
             <div>
-              <h2 class="font-semibold">Records</h2>
-              <p class="text-sm text-slate-500">Add or edit enrollment rows (mock-only)</p>
+              <h2 class="hei-font-semibold">Records</h2>
+              <p class="hei-text-sm">Add or edit enrollment rows (mock-only)</p>
             </div>
-            <button id="addBtn" class="inline-flex items-center gap-2 px-3 py-2 rounded bg-emerald-600 text-white"><i data-lucide="plus" class="h-4 w-4"></i>Add Row</button>
+            <button id="addBtn" class="hei-inline-flex hei-items-center hei-gap-2 hei-btn hei-btn-primary"><i data-lucide="plus" class="h-4 w-4"></i>Add Row</button>
           </header>
-          <div class="p-5 overflow-x-auto">
-            <table class="min-w-full text-sm">
+          <div class="p-5 hei-overflow-x-auto">
+            <table class="min-w-full" style="font-size: 0.875rem;">
               <thead class="text-slate-600 border-b">
                 <tr>
                   <th class="py-2">AY</th>

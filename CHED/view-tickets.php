@@ -59,28 +59,28 @@ if ($fDue !== '') $filters['due'] = $fDue;
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   </head>
-  <body class="min-h-screen flex flex-col bg-gray-50 text-slate-800">
+  <body class="ched-min-h-screen">
   <?php $showHEI = false; require_once __DIR__ . '/../includes/header.php'; ?>
 
-    <div class="flex-1 flex">
+  <div class="ched-flex-1">
       <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
 
-    <main class="flex-1 p-6 overflow-y-auto">
-      <div class="max-w-7xl mx-auto space-y-6">
-        <section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-          <header class="px-5 pt-5 pb-3 border-b">
-            <h2 class="font-semibold">Search & Filter</h2>
-            <p class="text-sm text-slate-500">Find tickets across institutions — filter by HEI, category, priority, status, or due date.</p>
+    <main class="ched-main">
+      <div class="ched-max-w-7xl ched-space-y-6">
+        <section class="ched-card">
+          <header class="ched-card-header">
+            <h2 class="ched-font-semibold">Search & Filter</h2>
+            <p class="ched-text-sm">Find tickets across institutions — filter by HEI, category, priority, status, or due date.</p>
           </header>
-          <div class="p-5 grid md:grid-cols-6 gap-3">
+          <div class="p-5 ched-grid ched-md-grid-cols-6 ched-gap-3">
             <form id="filterForm" method="get" class="contents">
-              <select id="fHei" name="fHei" class="px-3 py-2 rounded border">
+              <select id="fHei" name="fHei" class="ched-select">
                 <option value="all">All HEIs</option>
                 <?php foreach ($heis as $h) { $sel = ($fHei !== 'all' && (int)$fHei === (int)$h['id']) ? 'selected' : ''; ?>
                 <option value="<?php echo htmlspecialchars($h['id'], ENT_QUOTES); ?>" <?php echo $sel; ?>><?php echo htmlspecialchars($h['name'], ENT_QUOTES); ?></option>
                 <?php } ?>
               </select>
-              <select id="fCategory" name="fCategory" class="px-3 py-2 rounded border">
+              <select id="fCategory" name="fCategory" class="ched-select">
                 <option value="all">All Categories</option>
                 <option value="Enrollment" <?php echo ($fCategory === 'Enrollment') ? 'selected' : ''; ?>>Enrollment</option>
                 <option value="Faculty" <?php echo ($fCategory === 'Faculty') ? 'selected' : ''; ?>>Faculty</option>
@@ -88,7 +88,7 @@ if ($fDue !== '') $filters['due'] = $fDue;
                 <option value="Institutional Profile" <?php echo ($fCategory === 'Institutional Profile') ? 'selected' : ''; ?>>Institutional Profile</option>
               </select>
 
-              <select id="fPriority" name="fPriority" class="px-3 py-2 rounded border">
+              <select id="fPriority" name="fPriority" class="ched-select">
                 <option value="all">All Priorities</option>
                 <option value="Urgent" <?php echo ($fPriority === 'Urgent') ? 'selected' : ''; ?>>Urgent</option>
                 <option value="High" <?php echo ($fPriority === 'High') ? 'selected' : ''; ?>>High</option>
@@ -96,7 +96,7 @@ if ($fDue !== '') $filters['due'] = $fDue;
                 <option value="Low" <?php echo ($fPriority === 'Low') ? 'selected' : ''; ?>>Low</option>
               </select>
 
-              <select id="fStatus" name="fStatus" class="px-3 py-2 rounded border">
+              <select id="fStatus" name="fStatus" class="ched-select">
                 <option value="all">All Statuses</option>
                 <option value="Open" <?php echo ($fStatus === 'Open') ? 'selected' : ''; ?>>Open</option>
                 <option value="In Progress" <?php echo ($fStatus === 'In Progress') ? 'selected' : ''; ?>>In Progress</option>
@@ -105,37 +105,37 @@ if ($fDue !== '') $filters['due'] = $fDue;
                 <option value="Closed" <?php echo ($fStatus === 'Closed') ? 'selected' : ''; ?>>Closed</option>
               </select>
 
-              <input id="fDue" name="fDue" type="date" value="<?php echo htmlspecialchars($fDue, ENT_QUOTES); ?>" class="px-3 py-2 rounded border" />
+              <input id="fDue" name="fDue" type="date" value="<?php echo htmlspecialchars($fDue, ENT_QUOTES); ?>" class="ched-input" />
 
-              <button type="submit" class="px-3 py-2 rounded bg-slate-200">Apply</button>
-              <a href="view-tickets.php" class="px-3 py-2 rounded border">Reset</a>
+              <button type="submit" class="ched-btn">Apply</button>
+              <a href="view-tickets.php" class="ched-btn ched-btn-outline">Reset</a>
             </form>
           </div>
         </section>
 
-        <section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-          <header class="px-5 pt-5 pb-3 border-b flex items-center justify-between">
-            <h2 class="font-semibold">Tickets</h2>
-            <div class="flex items-center gap-3">
-              <a href="./create-ticket.php" class="inline-flex items-center gap-2 text-sm px-3 py-2 rounded bg-blue-600 text-white">
+        <section class="ched-card">
+          <header class="ched-card-header ched-items-center ched-justify-between" style="display: flex;">
+            <h2 class="ched-font-semibold">Tickets</h2>
+            <div class="ched-items-center ched-gap-3" style="display: flex;">
+              <a href="./create-ticket.php" class="ched-btn ched-btn-primary ched-items-center ched-gap-2" style="display: inline-flex; font-size: 0.875rem;">
                 <i data-lucide="plus" class="h-4 w-4"></i>
                 Create Ticket
               </a>
-              <div id="pager" class="text-sm text-slate-600"></div>
+              <div id="pager" class="ched-text-sm" style="color: #64748b;"></div>
             </div>
           </header>
 
-          <div class="overflow-x-auto">
+          <div class="ched-overflow-x-auto">
               <table class="w-full text-left">
-                <thead class="text-sm text-slate-500 bg-slate-50">
+                <thead class="ched-text-sm" style="color: #64748b; background: #f8fafc;">
                   <tr>
-                    <th class="px-6 py-4 font-medium">Title</th>
-                    <th class="px-6 py-4 font-medium">HEI</th>
-                    <th class="px-6 py-4 font-medium">Category</th>
-                    <th class="px-6 py-4 font-medium">Priority</th>
-                    <th class="px-6 py-4 font-medium">Status</th>
-                    <th class="px-6 py-4 font-medium">Due Date</th>
-                    <th class="px-6 py-4 font-medium">Actions</th>
+                    <th class="px-6 py-4 ched-font-semibold">Title</th>
+                    <th class="px-6 py-4 ched-font-semibold">HEI</th>
+                    <th class="px-6 py-4 ched-font-semibold">Category</th>
+                    <th class="px-6 py-4 ched-font-semibold">Priority</th>
+                    <th class="px-6 py-4 ched-font-semibold">Status</th>
+                    <th class="px-6 py-4 ched-font-semibold">Due Date</th>
+                    <th class="px-6 py-4 ched-font-semibold">Actions</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y">
@@ -155,46 +155,51 @@ if ($fDue !== '') $filters['due'] = $fDue;
 
                     // badge classes
                     $priorityClass = match(strtolower($priority)) {
-                      'urgent' => 'bg-red-600 text-white',
-                      'high' => 'bg-blue-600 text-white',
-                      'medium' => 'bg-sky-500 text-white',
-                      'low' => 'bg-gray-200 text-slate-800',
-                      default => 'bg-gray-100 text-slate-700'
+                      'urgent' => 'prism-badge prism-badge-status-urgent',
+                      'high' => 'prism-badge prism-badge-status-high',
+                      'medium' => 'prism-badge prism-badge-status-medium',
+                      'low' => 'prism-badge prism-badge-status-low',
+                      default => 'prism-badge prism-badge-status-default'
                     };
                     $statusClass = match(strtolower($status)) {
-                      'open' => 'bg-blue-700 text-white',
-                      'in progress' => 'bg-sky-100 text-sky-800',
-                      'pending' => 'bg-yellow-100 text-amber-800',
-                      'resolved' => 'bg-emerald-100 text-emerald-800',
-                      'closed' => 'bg-slate-200 text-slate-800',
-                      default => 'bg-gray-100 text-slate-700'
+                      'open' => 'prism-badge prism-badge-status-open',
+                      'new' => 'prism-badge prism-badge-status-new',
+                      'in progress' => 'prism-badge prism-badge-status-inprogress',
+                      'pending' => 'prism-badge prism-badge-status-pending',
+                      'resolved' => 'prism-badge prism-badge-status-resolved',
+                      'closed' => 'prism-badge prism-badge-status-closed',
+                      'urgent' => 'prism-badge prism-badge-status-urgent',
+                      'high' => 'prism-badge prism-badge-status-high',
+                      'medium' => 'prism-badge prism-badge-status-medium',
+                      'low' => 'prism-badge prism-badge-status-low',
+                      default => 'prism-badge prism-badge-status-default'
                     };
                   ?>
                   <tr class="hover:bg-slate-50">
                     <td class="px-6 py-4 align-top">
-                      <div class="font-medium text-slate-800"><?php echo $title; ?></div>
-                      <div class="text-xs text-slate-400 mt-1">ID: <?php echo $id; ?></div>
+                      <div class="ched-font-semibold ched-text-slate-800"><?php echo $title; ?></div>
+                      <div class="ched-text-xs" style="margin-top: 0.25rem; color: #94a3b8;">ID: <?php echo $id; ?></div>
                     </td>
                     <td class="px-6 py-4 align-top">
-                      <div class="text-sm text-slate-700"><?php echo $heiName; ?></div>
+                      <div class="ched-text-sm ched-text-slate-800"><?php echo $heiName; ?></div>
                     </td>
                     <td class="px-6 py-4 align-top">
-                      <div class="inline-flex items-center px-3 py-1 rounded-full bg-slate-50 text-sm text-slate-700 border"><?php echo $category; ?></div>
+                      <div class="inline-flex ched-items-center px-3 py-1 rounded-full bg-slate-50 ched-text-sm ched-text-slate-800 border"><?php echo $category; ?></div>
                     </td>
                     <td class="px-6 py-4 align-top">
-                      <span class="inline-flex items-center px-3 py-1 rounded-full text-sm <?php echo $priorityClass; ?>"><?php echo $priority; ?></span>
+                      <span class="<?php echo $priorityClass; ?>"><?php echo $priority; ?></span>
                     </td>
                     <td class="px-6 py-4 align-top">
-                      <span class="inline-flex items-center px-3 py-1 rounded-full text-sm <?php echo $statusClass; ?>"><?php echo $status; ?></span>
+                      <span class="<?php echo $statusClass; ?>"><?php echo $status; ?></span>
                     </td>
                     <td class="px-6 py-4 align-top">
-                      <div class="text-sm text-slate-700 flex items-center gap-2">
-                        <i data-lucide="calendar" class="h-4 w-4 text-slate-400"></i>
+                      <div class="ched-text-sm ched-items-center ched-gap-2" style="display: flex; color: #1e293b;">
+                        <i data-lucide="calendar" class="h-4 w-4" style="color: #94a3b8;"></i>
                         <?php echo $dueRaw ? date('F j, Y', strtotime($dueRaw)) : '—'; ?>
                       </div>
                     </td>
                     <td class="px-6 py-4 align-top">
-                      <a href="ticket-details.php?ticket_id=<?php echo $id; ?>" class="inline-flex items-center gap-2 text-sm text-slate-700 hover:text-slate-900">
+                      <a href="ticket-details.php?ticket_id=<?php echo $id; ?>" class="inline-flex ched-items-center ched-gap-2 ched-text-sm ched-text-slate-800 hover:ched-text-slate-900">
                         <i data-lucide="eye" class="h-4 w-4"></i>
                         View
                       </a>
@@ -203,7 +208,7 @@ if ($fDue !== '') $filters['due'] = $fDue;
                   <?php endforeach; ?>
                   <?php if (empty($tickets)): ?>
                   <tr>
-                    <td colspan="8" class="px-6 py-8 text-center text-sm text-slate-500">No tickets found.</td>
+                    <td colspan="8" class="px-6 py-8 text-center ched-text-sm" style="color: #64748b;">No tickets found.</td>
                   </tr>
                   <?php endif; ?>
                 </tbody>

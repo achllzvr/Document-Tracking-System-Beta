@@ -1,0 +1,118 @@
+/* ched-global.css: Common styles for CHED pages */
+
+/* Layout containers */
+.ched-min-h-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f8fafc; /* Tailwind bg-gray-50 */
+  color: #1e293b; /* Tailwind text-slate-800 */
+}
+.ched-flex-1 {
+  flex: 1 1 0%;
+  display: flex;
+}
+.ched-main {
+  flex: 1 1 0%;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+.ched-max-w-7xl {
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+.ched-space-y-6 > * + * {
+  margin-top: 1.5rem;
+}
+
+/* Card/Section */
+.ched-card {
+  background: #fff;
+  border: 1px solid #e2e8f0; /* border-slate-200 */
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgb(16 24 40 / 5%);
+  overflow: hidden;
+}
+.ched-card-header {
+  padding: 1.25rem 1.25rem 0.75rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Typography */
+.ched-font-semibold {
+  font-weight: 600;
+}
+.ched-text-sm {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+.ched-text-xs {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+.ched-text-slate-800 {
+  color: #1e293b;
+}
+
+/* Form Elements */
+.ched-input, .ched-select {
+  padding: 0.75rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  width: 100%;
+}
+.ched-btn {
+  padding: 0.75rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  background: #f1f5f9;
+  color: #1e293b;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.ched-btn-primary {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+}
+.ched-btn-primary:hover {
+  background: #1d4ed8;
+}
+.ched-btn-outline {
+  background: #fff;
+  color: #1e293b;
+  border: 1px solid #e5e7eb;
+}
+.ched-btn-outline:hover {
+  background: #f1f5f9;
+}
+
+/* Misc */
+.ched-shadow-sm {
+  box-shadow: 0 1px 2px 0 rgb(16 24 40 / 5%);
+}
+.ched-rounded-lg {
+  border-radius: 0.5rem;
+}
+.ched-overflow-x-auto {
+  overflow-x: auto;
+}
+.ched-items-center {
+  align-items: center;
+}
+.ched-justify-between {
+  justify-content: space-between;
+}
+.ched-gap-3 {
+  gap: 0.75rem;
+}
+.ched-grid {
+  display: grid;
+}
+.ched-md-grid-cols-6 {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.ched-gap-4 {
+  gap: 1rem;
+}

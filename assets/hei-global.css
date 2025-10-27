@@ -1,0 +1,158 @@
+/* Utility classes for dashboard and general use */
+.hei-p-4 { padding: 1rem; }
+.hei-p-5 { padding: 1.25rem; }
+.hei-px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+.hei-py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+.hei-py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.hei-divide-y > * + * { border-top: 1px solid #e5e7eb; }
+.hei-block { display: block; }
+.hei-flex { display: flex; }
+.hei-items-start { align-items: flex-start; }
+.hei-flex-1 { flex: 1 1 0%; }
+.hei-min-w-0 { min-width: 0; }
+.hei-font-medium { font-weight: 500; }
+.hei-rounded { border-radius: 0.375rem; }
+.hei-border { border: 1px solid #e5e7eb; }
+.hei-border-t { border-top: 1px solid #e5e7eb; }
+.hei-text-muted { color: #64748b; }
+.hei-lg-grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.hei-px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+.hei-py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+/* hei-global.css: Common styles for HEI pages */
+
+/* Layout containers */
+.hei-min-h-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f8fafc; /* Tailwind bg-gray-50 */
+  color: #1e293b; /* Tailwind text-slate-800 */
+}
+.hei-flex-1 {
+  flex: 1 1 0%;
+  display: flex;
+}
+.hei-main {
+  flex: 1 1 0%;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+.hei-max-w-7xl {
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+.hei-max-w-4xl {
+  max-width: 56rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+.hei-space-y-6 > * + * {
+  margin-top: 1.5rem;
+}
+
+/* Card/Section */
+.hei-card {
+  background: #fff;
+  border: 1px solid #e2e8f0; /* border-slate-200 */
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgb(16 24 40 / 5%);
+  overflow: hidden;
+}
+.hei-card-header {
+  padding: 1.25rem 1.25rem 0.75rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Typography */
+.hei-font-semibold {
+  font-weight: 600;
+}
+.hei-text-sm {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+.hei-text-xs {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+.hei-text-slate-800 {
+  color: #1e293b;
+}
+
+/* Form Elements */
+.hei-input, .hei-select {
+  padding: 0.75rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  width: 100%;
+}
+.hei-btn {
+  padding: 0.75rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  background: #f1f5f9;
+  color: #1e293b;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.hei-btn-primary {
+  background: #059669;
+  color: #fff;
+  border: none;
+}
+.hei-btn-primary:hover {
+  background: #047857;
+}
+.hei-btn-outline {
+  background: #fff;
+  color: #1e293b;
+  border: 1px solid #e5e7eb;
+}
+.hei-btn-outline:hover {
+  background: #f1f5f9;
+}
+
+/* Misc */
+.hei-shadow-sm {
+  box-shadow: 0 1px 2px 0 rgb(16 24 40 / 5%);
+}
+.hei-rounded-xl {
+  border-radius: 0.75rem;
+}
+.hei-overflow-x-auto {
+  overflow-x: auto;
+}
+.hei-items-center {
+  align-items: center;
+}
+.hei-justify-between {
+  justify-content: space-between;
+}
+.hei-gap-3 {
+  gap: 0.75rem;
+}
+.hei-gap-4 {
+  gap: 1rem;
+}
+.hei-grid {
+  display: grid;
+}
+.hei-md-grid-cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.hei-md-grid-cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.hei-md-grid-cols-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.hei-col-span-2 {
+  grid-column: span 2 / span 2;
+}
+.hei-inline-flex {
+  display: inline-flex;
+}
+.hei-hover-bg-slate-50:hover {
+  background: #f8fafc;
+}

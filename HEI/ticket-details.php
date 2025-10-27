@@ -40,67 +40,96 @@ $comments = $ticketId ? $db->getCommentsForTicket($ticketId) : [];
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
 </head>
-<body class="min-h-screen flex flex-col bg-gray-50 text-slate-800">
+<body class="hei-min-h-screen">
   <?php require_once __DIR__ . '/../includes/header.php'; ?>
 
-  <div class="flex-1 flex">
+  <div class="hei-flex-1">
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
 
-    <main class="flex-1 p-6 overflow-y-auto">
-    <div class="max-w-4xl mx-auto space-y-6">
-      <section id="header" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-        <?php if (! $ticket): ?>
-          <div class="p-6">Ticket not found.</div>
-        <?php else: ?>
-          <div class="px-5 pt-5 pb-3 border-b">
-            <h2 class="font-semibold"><?php echo htmlspecialchars($ticket['ticket_title'] ?? 'Untitled'); ?></h2>
-            <p class="text-sm text-slate-500"><?php echo htmlspecialchars($ticket['hei_name'] ?? ''); ?></p>
-          </div>
-          <div class="p-5 grid md:grid-cols-2 gap-4 text-sm">
-            <p><span class="text-slate-500">Category:</span> <?php echo htmlspecialchars($ticket['ticket_category'] ?? '-'); ?></p>
-            <p><span class="text-slate-500">Priority:</span> <?php echo htmlspecialchars($ticket['ticket_priority'] ?? '-'); ?></p>
-            <p><span class="text-slate-500">Status:</span> <?php echo htmlspecialchars($ticket['ticket_status'] ?? '-'); ?></p>
-            <p><span class="text-slate-500">Due:</span> <?php echo !empty($ticket['ticket_due_date']) ? htmlspecialchars(date('F j, Y', strtotime($ticket['ticket_due_date']))) : '-'; ?></p>
-          </div>
-          <div class="px-5 pb-5 flex items-center gap-3">
-            <a class="inline-flex items-center gap-2 px-3 py-2 rounded border hover:bg-slate-50" href="/PRISM/tickets/download-template.php?ticket_id=<?php echo (int)$ticketId; ?>" id="downloadBtn"><i data-lucide="download" class="h-4 w-4"></i> Download Template</a>
-            <a class="inline-flex items-center gap-2 px-3 py-2 rounded bg-emerald-600 text-white" href="/PRISM/tickets/upload.php?ticket_id=<?php echo (int)$ticketId; ?>" id="uploadBtn"><i data-lucide="upload" class="h-4 w-4"></i> Upload Completed</a>
-          </div>
-        <?php endif; ?>
-      </section>
+    <!-- Back button at top left -->
+    <div style="max-width: 64rem; margin: 0 auto; position: relative;">
+      <a href="view-tickets.php" class="inline-flex items-center gap-2 px-3 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium absolute left-0 top-0 mt-4 ml-2 shadow-sm" style="z-index:10;">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i> Back
+      </a>
+    </div>
 
-      <div class="grid md:grid-cols-1 gap-6">
-        <section id="commentsBox" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-          <div class="px-5 pt-5 pb-3 border-b">
-            <h3 class="font-semibold">Comments</h3>
-            <p class="text-sm text-slate-500">Discuss ticket progress</p>
-          </div>
-          <div id="commentList">
-            <?php if (empty($comments)): ?>
-              <div class="p-4 text-sm text-slate-500">No comments yet.</div>
-            <?php else: ?>
-              <?php foreach ($comments as $c): ?>
-                <div class="p-3 border-b">
-                  <div class="flex items-start gap-3">
-                    <div class="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs"><?php echo strtoupper(substr($c['user_name'] ?? 'U',0,1)); ?></div>
-                    <div class="flex-1 min-w-0">
-                      <p class="text-sm"><span class="font-medium"><?php echo htmlspecialchars($c['user_name'] ?? ($c['user_type'] . '#' . $c['user_ID'])); ?></span> — <?php echo nl2br(htmlspecialchars($c['comment'])); ?></p>
-                      <p class="text-xs text-slate-500"><?php echo htmlspecialchars(date('F j, Y g:ia', strtotime($c['created_at']))); ?></p>
+    <main class="flex-1 p-6 overflow-y-auto">
+      <div class="max-w-3xl mx-auto space-y-6">
+        <section id="ticketHeader" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden" style="margin-top:2.5rem;">
+          <?php if (! $ticket): ?>
+            <div class="p-6">Ticket not found.</div>
+          <?php else: ?>
+            <div class="px-5 pt-5 pb-3 border-b">
+              <h2 class="font-semibold"><?php echo htmlspecialchars($ticket['ticket_title'] ?? 'Untitled'); ?></h2>
+              <p class="text-sm text-slate-500"><?php echo htmlspecialchars($ticket['hei_name'] ?? ''); ?></p>
+            </div>
+            <div class="p-5 grid md:grid-cols-2 gap-4 text-sm">
+              <p><span class="text-slate-500">Category:</span> <?php echo htmlspecialchars($ticket['ticket_category'] ?? '-'); ?></p>
+              <p><span class="text-slate-500">Priority:</span> 
+                <?php 
+                  $priority = strtolower($ticket['ticket_priority'] ?? 'default');
+                  $priorityClass = 'prism-badge prism-badge-status-' . preg_replace('/\s+/', '', $priority);
+                ?>
+                <span class="<?php echo $priorityClass; ?>">
+                  <?php echo htmlspecialchars($ticket['ticket_priority'] ?? '-'); ?>
+                </span>
+              </p>
+              <p><span class="text-slate-500">Status:</span>
+                <?php 
+                  $status = strtolower($ticket['ticket_status'] ?? 'default');
+                  $statusClass = 'prism-badge prism-badge-status-' . preg_replace('/\s+/', '', $status);
+                ?>
+                <span class="<?php echo $statusClass; ?>">
+                  <?php echo htmlspecialchars($ticket['ticket_status'] ?? '-'); ?>
+                </span>
+              </p>
+              <p><span class="text-slate-500">Due:</span> <?php echo !empty($ticket['ticket_due_date']) ? htmlspecialchars(date('F j, Y', strtotime($ticket['ticket_due_date']))) : '-'; ?></p>
+            </div>
+            <div class="px-5 pb-5">
+              <p><span class="text-slate-500 text-sm">Description:</span></p>
+              <p class="text-sm"><?php echo nl2br(htmlspecialchars($ticket['ticket_description'] ?? '')); ?></p>
+            </div>
+            <div class="px-5 pb-5 flex items-center gap-3">
+              <a class="inline-flex items-center gap-2 px-3 py-2 rounded border hover:bg-slate-50" href="/PRISM/tickets/download-template.php?ticket_id=<?php echo (int)$ticketId; ?>" id="downloadBtn"><i data-lucide="download" class="h-4 w-4"></i> Download Template</a>
+              <a class="inline-flex items-center gap-2 px-3 py-2 rounded bg-blue-600 text-white" href="/PRISM/tickets/upload.php?ticket_id=<?php echo (int)$ticketId; ?>" id="uploadBtn"><i data-lucide="upload" class="h-4 w-4"></i> Upload Completed</a>
+            </div>
+          <?php endif; ?>
+        </section>
+
+        <section class="grid md:grid-cols-1 gap-6">
+          <div id="comments" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+            <div class="px-5 pt-5 pb-3 border-b">
+              <h3 class="font-semibold">Comments</h3>
+              <p class="text-sm text-slate-500">Discuss ticket progress</p>
+            </div>
+            <div id="commentList">
+              <?php if (empty($comments)): ?>
+                <div class="p-4 text-sm text-slate-500">No comments yet.</div>
+              <?php else: ?>
+                <?php foreach ($comments as $c): ?>
+                  <div class="p-5 border-b">
+                    <div class="flex items-start gap-3">
+                      <div class="px-2">
+                        <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs"><?php echo strtoupper(substr($c['user_name'] ?? 'U',0,1)); ?></div>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm"><span class="font-bold"><?php echo htmlspecialchars($c['user_name'] ?? ($c['user_type'].'#'.$c['user_ID'])); ?></span>: <?php echo nl2br(htmlspecialchars($c['comment'])); ?></p>
+                        <p class="text-xs text-slate-500"><?php echo htmlspecialchars(date('F j, Y g:ia', strtotime($c['created_at']))); ?></p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              <?php endforeach; ?>
-            <?php endif; ?>
-          </div>
+                <?php endforeach; ?>
+              <?php endif; ?>
+            </div>
 
-          <form method="post" class="p-4 border-t grid grid-cols-[1fr_auto] gap-3">
-            <input name="comment" required class="px-3 py-2 rounded border" placeholder="Write a comment..." aria-label="Add comment" />
-            <button class="px-3 py-2 rounded bg-emerald-600 text-white">Post</button>
-          </form>
+            <form id="commentForm" method="post" class="p-4 border-t grid grid-cols-[1fr_auto] gap-3">
+              <input name="comment" id="commentInput" required class="px-3 py-2 rounded border" placeholder="Write a comment..." aria-label="Add comment" />
+              <button class="px-3 py-2 rounded bg-blue-600 text-white">Post</button>
+            </form>
+          </div>
         </section>
       </div>
-    </div>
-  </main>
+    </main>
 
   <script>if (window.lucide) lucide.createIcons();</script>
 </body>

@@ -17,30 +17,30 @@ require_once __DIR__ . '/../includes/ched_protect.php';
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
-<body class="min-h-screen flex flex-col bg-gray-50 text-slate-800">
+<body class="ched-min-h-screen">
   <?php $showHEI = false; require_once __DIR__ . '/../includes/header.php'; ?>
-  <div class="flex-1 flex">
+  <div class="ched-flex-1">
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
-    <main class="flex-1 p-6 overflow-y-auto">
+    <main class="ched-main">
       <div class="max-w-3xl mx-auto">
-        <form id="ticketForm" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-          <div class="px-5 pt-5 pb-3 border-b">
-            <h2 class="font-semibold">Ticket Details</h2>
-            <p class="text-sm text-slate-500">Update fields and status</p>
+        <form id="ticketForm" class="ched-card">
+          <div class="ched-card-header">
+            <h2 class="ched-font-semibold">Ticket Details</h2>
+            <p class="ched-text-sm">Update fields and status</p>
           </div>
-          <div class="p-5 grid md:grid-cols-2 gap-4">
+          <div class="p-5 ched-grid md:grid-cols-2 ched-gap-4">
             <div class="md:col-span-2">
-              <label for="hei" class="block text-sm font-medium mb-1">Institution</label>
-              <select id="hei" required class="w-full px-3 py-2 rounded border" aria-label="Institution"></select>
+              <label for="hei" class="ched-text-sm font-medium mb-1">Institution</label>
+              <select id="hei" required class="ched-select" aria-label="Institution"></select>
               <!-- TODO[backend]: load HEIs from db.getHEIs() -->
             </div>
             <div class="md:col-span-2">
-              <label for="title" class="block text-sm font-medium mb-1">Title</label>
-              <input id="title" required class="w-full px-3 py-2 rounded border" />
+              <label for="title" class="ched-text-sm font-medium mb-1">Title</label>
+              <input id="title" required class="ched-input" />
             </div>
             <div>
-              <label for="category" class="block text-sm font-medium mb-1">Category</label>
-              <select id="category" required class="w-full px-3 py-2 rounded border">
+              <label for="category" class="ched-text-sm font-medium mb-1">Category</label>
+              <select id="category" required class="ched-select">
                 <option value="Enrollment">Enrollment</option>
                 <option value="Faculty">Faculty</option>
                 <option value="Graduates">Graduates</option>
@@ -48,8 +48,8 @@ require_once __DIR__ . '/../includes/ched_protect.php';
               </select>
             </div>
             <div>
-              <label for="priority" class="block text-sm font-medium mb-1">Priority</label>
-              <select id="priority" required class="w-full px-3 py-2 rounded border">
+              <label for="priority" class="ched-text-sm font-medium mb-1">Priority</label>
+              <select id="priority" required class="ched-select">
                 <option>Urgent</option>
                 <option>High</option>
                 <option>Medium</option>
@@ -57,8 +57,8 @@ require_once __DIR__ . '/../includes/ched_protect.php';
               </select>
             </div>
             <div>
-              <label for="status" class="block text-sm font-medium mb-1">Status</label>
-              <select id="status" required class="w-full px-3 py-2 rounded border">
+              <label for="status" class="ched-text-sm font-medium mb-1">Status</label>
+              <select id="status" required class="ched-select">
                 <option>Open</option>
                 <option>In Progress</option>
                 <option>Pending</option>
@@ -67,18 +67,18 @@ require_once __DIR__ . '/../includes/ched_protect.php';
               </select>
             </div>
             <div>
-              <label for="due" class="block text-sm font-medium mb-1">Due Date</label>
-              <input id="due" type="date" class="w-full px-3 py-2 rounded border" />
+              <label for="due" class="ched-text-sm font-medium mb-1">Due Date</label>
+              <input id="due" type="date" class="ched-input" />
             </div>
             <div>
-              <label for="assignee" class="block text-sm font-medium mb-1">Assignee</label>
-              <input id="assignee" list="assigneeList" class="w-full px-3 py-2 rounded border" />
+              <label for="assignee" class="ched-text-sm font-medium mb-1">Assignee</label>
+              <input id="assignee" list="assigneeList" class="ched-input" />
               <datalist id="assigneeList"></datalist>
               <!-- TODO[backend]: populate assignees from db.getHEIUsers(heiId) -->
             </div>
             <div class="md:col-span-2">
-              <label for="desc" class="block text-sm font-medium mb-1">Description</label>
-              <textarea id="desc" rows="4" class="w-full px-3 py-2 rounded border"></textarea>
+              <label for="desc" class="ched-text-sm font-medium mb-1">Description</label>
+              <textarea id="desc" rows="4" class="ched-input"></textarea>
             </div>
           </div>
           <div class="px-5 py-4 border-t flex items-center justify-between bg-slate-50">

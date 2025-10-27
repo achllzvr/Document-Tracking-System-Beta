@@ -68,19 +68,36 @@ $comments = $ticketId ? $db->getCommentsForTicket($ticketId) : [];
             </div>
             <div class="p-5 grid md:grid-cols-2 gap-4 text-sm">
               <p><span class="text-slate-500">Category:</span> <?php echo htmlspecialchars($ticket['ticket_category'] ?? '-'); ?></p>
-              <p><span class="text-slate-500">Priority:</span> <?php echo htmlspecialchars($ticket['ticket_priority'] ?? '-'); ?></p>
-              <p><span class="text-slate-500">Status:</span>
-                <form method="post" class="inline-block"><select name="status" onchange="this.form.submit()" class="px-2 py-1 rounded border">
-                  <option value="Open" <?php echo (($ticket['ticket_status'] ?? '') === 'Open') ? 'selected' : ''; ?>>Open</option>
-                  <option value="In Progress" <?php echo (($ticket['ticket_status'] ?? '') === 'In Progress') ? 'selected' : ''; ?>>In Progress</option>
-                  <option value="Pending" <?php echo (($ticket['ticket_status'] ?? '') === 'Pending') ? 'selected' : ''; ?>>Pending</option>
-                  <option value="Resolved" <?php echo (($ticket['ticket_status'] ?? '') === 'Resolved') ? 'selected' : ''; ?>>Resolved</option>
-                  <option value="Closed" <?php echo (($ticket['ticket_status'] ?? '') === 'Closed') ? 'selected' : ''; ?>>Closed</option>
-                </select></form>
+              <p><span class="text-slate-500">Priority:</span> 
+                <?php 
+                  $priority = strtolower($ticket['ticket_priority'] ?? 'default');
+                  $priorityClass = 'prism-badge prism-badge-status-' . preg_replace('/\s+/', '', $priority);
+                ?>
+                <span class="<?php echo $priorityClass; ?>">
+                  <?php echo htmlspecialchars($ticket['ticket_priority'] ?? '-'); ?>
+                </span>
               </p>
+              <div class="flex items-center gap-2">
+                <p><span class="text-slate-500">Status:</span>
+                <form method="post" class="inline-block align-middle">
+                  <?php 
+                    $status = strtolower($ticket['ticket_status'] ?? 'default');
+                    $statusClass = 'prism-badge prism-badge-status-' . preg_replace('/\s+/', '', $status);
+                  ?>
+                  <select name="status" onchange="this.form.submit()" class="px-2 py-1 rounded border">
+                    <option value="Open" <?php echo (($ticket['ticket_status'] ?? '') === 'Open') ? 'selected' : ''; ?>>Open</option>
+                    <option value="In Progress" <?php echo (($ticket['ticket_status'] ?? '') === 'In Progress') ? 'selected' : ''; ?>>In Progress</option>
+                    <option value="Pending" <?php echo (($ticket['ticket_status'] ?? '') === 'Pending') ? 'selected' : ''; ?>>Pending</option>
+                    <option value="Resolved" <?php echo (($ticket['ticket_status'] ?? '') === 'Resolved') ? 'selected' : ''; ?>>Resolved</option>
+                    <option value="Closed" <?php echo (($ticket['ticket_status'] ?? '') === 'Closed') ? 'selected' : ''; ?>>Closed</option>
+                  </select>
+                </form>
+              </p>
+              </div>
               <p><span class="text-slate-500">Due:</span> <?php echo !empty($ticket['ticket_due_date']) ? htmlspecialchars(date('F j, Y', strtotime($ticket['ticket_due_date']))) : '-'; ?></p>
             </div>
             <div class="px-5 pb-5">
+              <p><span class="text-slate-500 text-sm">Description:</span>
               <p class="text-sm"><?php echo nl2br(htmlspecialchars($ticket['ticket_description'] ?? '')); ?></p>
             </div>
             <div class="px-5 pb-5 flex items-center gap-3">
@@ -98,14 +115,16 @@ $comments = $ticketId ? $db->getCommentsForTicket($ticketId) : [];
             </div>
             <div id="commentList">
               <?php if (empty($comments)): ?>
-                <div class="p-4 text-sm text-slate-500">No comments yet.</div>
+                <div class="p-5 text-sm text-slate-500">No comments yet.</div>
               <?php else: ?>
                 <?php foreach ($comments as $c): ?>
                   <div class="p-3 border-b">
                     <div class="flex items-start gap-3">
-                      <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs"><?php echo strtoupper(substr($c['user_name'] ?? 'U',0,1)); ?></div>
+                      <div class="px-2">
+                        <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs"><?php echo strtoupper(substr($c['user_name'] ?? 'U',0,1)); ?></div>
+                      </div>
                       <div class="flex-1 min-w-0">
-                        <p class="text-sm"><span class="font-medium"><?php echo htmlspecialchars($c['user_name'] ?? ($c['user_type'].'#'.$c['user_ID'])); ?></span> — <?php echo nl2br(htmlspecialchars($c['comment'])); ?></p>
+                        <p class="text-sm"><span class="font-bold"><?php echo htmlspecialchars($c['user_name'] ?? ($c['user_type'].'#'.$c['user_ID'])); ?></span>: <?php echo nl2br(htmlspecialchars($c['comment'])); ?></p>
                         <p class="text-xs text-slate-500"><?php echo htmlspecialchars(date('F j, Y g:ia', strtotime($c['created_at']))); ?></p>
                       </div>
                     </div>
