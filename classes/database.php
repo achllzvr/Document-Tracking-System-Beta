@@ -267,6 +267,470 @@ class database{
         }
     }
 
+
+    /**
+     * HEI Dashboard & Tickets helper stubs
+     *
+     * The functions below are lightweight stubs that return consistent
+     * shapes and include TODO markers. Implement the SQL and logic later
+     * following the project's conventions (use $this->opencon(), prepared
+     * statements, transactions where needed, and return associative arrays
+     * / ints / booleans as appropriate).
+     */
+
+    /**
+     * Get aggregated dashboard stats for a specific HEI.
+     * Return shape: [ 'totalTickets'=>int, 'open'=>int, 'pending'=>int, 'resolved'=>int,
+     *                 'enrollmentUpdates'=>int, 'facultyUpdates'=>int, 'graduatesUpdates'=>int ]
+     */
+    function getHEIDashboardStats($heiId){
+        $conn = $this->opencon();
+        try{
+            // Map provided heiId (could be institutional_profile_data.hei_ID) to tickets.hei_ID (which references HEI_user.hei_user_ID)
+            $ticketHeiWhere = '';
+            $ticketParams = [];
+            // If the provided id exists as a HEI user id, use it directly
+            $checkUser = $conn->prepare("SELECT 1 FROM HEI_user WHERE hei_user_ID = ? LIMIT 1");
+            $checkUser->execute([$heiId]);
+            if ($checkUser->fetch()) {
+                $ticketHeiWhere = ' WHERE hei_ID = ?';
+                $ticketParams = [$heiId];
+            } else {
+                // treat provided id as institutional_profile_data.hei_ID -> find HEI_user ids
+                $uStmt = $conn->prepare("SELECT hei_user_ID FROM HEI_user WHERE hei_ID = ?");
+                $uStmt->execute([$heiId]);
+                $uids = $uStmt->fetchAll(PDO::FETCH_COLUMN);
+                if (!$uids) {
+                    // no users -> no tickets
+                    return [
+                        'totalTickets' => 0,
+                        'open' => 0,
+                        'pending' => 0,
+                        'resolved' => 0,
+                        'enrollmentUpdates' => 0,
+                        'facultyUpdates' => 0,
+                        'graduatesUpdates' => 0
+                    ];
+                }
+                $placeholders = implode(',', array_fill(0, count($uids), '?'));
+                $ticketHeiWhere = " WHERE hei_ID IN ($placeholders)";
+                $ticketParams = $uids;
+            }
+
+            // ticket totals by status
+            $stmt = $conn->prepare("SELECT
+                                        COUNT(*) AS total,
+                                        SUM(ticket_status = 0) AS open,
+                                        SUM(ticket_status = 1) AS pending,
+                                        SUM(ticket_status = 2) AS resolved
+                                     FROM tickets" . $ticketHeiWhere);
+            $stmt->execute($ticketParams);
+            $t = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // recent update counts for the HEI (week-to-date)
+            // We assume enrollment_data, faculty_data, graduates_data have a column named hei_ID
+            // and that update_history.update_ID links to *_udd_ID in those tables as in other helpers.
+            $weekStart = "CURDATE() - INTERVAL WEEKDAY(CURDATE()) DAY"; // SQL expression
+
+            $stmtEnr = $conn->prepare("SELECT COUNT(*) AS total FROM update_history u
+                                        JOIN enrollment_data e ON u.update_ID = e.enr_udd_ID
+                                        WHERE e.hei_ID = ? AND u.updated_at >= $weekStart");
+            $stmtEnr->execute([$heiId]);
+            $enr = $stmtEnr->fetch(PDO::FETCH_ASSOC);
+
+            $stmtFac = $conn->prepare("SELECT COUNT(*) AS total FROM update_history u
+                                        JOIN faculty_data f ON u.update_ID = f.fac_udd_ID
+                                        WHERE f.hei_ID = ? AND u.updated_at >= $weekStart");
+            $stmtFac->execute([$heiId]);
+            $fac = $stmtFac->fetch(PDO::FETCH_ASSOC);
+
+            $stmtGrad = $conn->prepare("SELECT COUNT(*) AS total FROM update_history u
+                                        JOIN graduates_data g ON u.update_ID = g.grad_udd_ID
+                                        WHERE g.hei_ID = ? AND u.updated_at >= $weekStart");
+            $stmtGrad->execute([$heiId]);
+            $grad = $stmtGrad->fetch(PDO::FETCH_ASSOC);
+
+            return [
+                'totalTickets' => (int)($t['total'] ?? 0),
+                'open' => (int)($t['open'] ?? 0),
+                'pending' => (int)($t['pending'] ?? 0),
+                'resolved' => (int)($t['resolved'] ?? 0),
+                'enrollmentUpdates' => (int)($enr['total'] ?? 0),
+                'facultyUpdates' => (int)($fac['total'] ?? 0),
+                'graduatesUpdates' => (int)($grad['total'] ?? 0)
+            ];
+        }catch(PDOException $e){
+            error_log('getHEIDashboardStats error: ' . $e->getMessage());
+            return [
+                'totalTickets' => 0,
+                'open' => 0,
+                'pending' => 0,
+                'resolved' => 0,
+                'enrollmentUpdates' => 0,
+                'facultyUpdates' => 0,
+                'graduatesUpdates' => 0
+            ];
+        }
+    }
+
+    /**
+     * Fetch tickets for a specific HEI with optional filters and pagination.
+     * Return shape: [ 'rows' => [..assoc rows..], 'total' => int ]
+     */
+    function getTicketsForHEI($heiId, $filters = [], $page = 1, $perPage = 25){
+        $conn = $this->opencon();
+        $offset = max(0, ($page - 1) * $perPage);
+
+        // Determine whether $heiId is a HEI user id (HEI_user.hei_user_ID) or an institution id (institutional_profile_data.hei_ID)
+        $params = [];
+        $baseWhere = '';
+        if (!$heiId) {
+            return ['rows'=>[], 'total'=>0];
+        }
+
+        // If heiId exists as a HEI_user.hei_user_ID, use directly; otherwise gather HEI_user ids for the institution
+        $checkUser = $conn->prepare("SELECT 1 FROM HEI_user WHERE hei_user_ID = ? LIMIT 1");
+        $checkUser->execute([$heiId]);
+        if ($checkUser->fetch()) {
+            $baseWhere = " WHERE t.hei_ID = ?";
+            $params = [$heiId];
+        } else {
+            $uStmt = $conn->prepare("SELECT hei_user_ID FROM HEI_user WHERE hei_ID = ?");
+            $uStmt->execute([$heiId]);
+            $uids = $uStmt->fetchAll(PDO::FETCH_COLUMN);
+            if (empty($uids)) {
+                return ['rows'=>[], 'total'=>0];
+            }
+            $placeholders = implode(',', array_fill(0, count($uids), '?'));
+            $baseWhere = " WHERE t.hei_ID IN ($placeholders)";
+            $params = $uids;
+        }
+
+        if (!empty($filters['category'])){
+            $baseWhere .= " AND t.ticket_category = ?";
+            $params[] = $filters['category'];
+        }
+        if (!empty($filters['priority'])){
+            $baseWhere .= " AND t.ticket_priority = ?";
+            $params[] = $filters['priority'];
+        }
+        if (isset($filters['status']) && $filters['status'] !== ''){
+            $baseWhere .= " AND t.ticket_status = ?";
+            $params[] = $filters['status'];
+        }
+        if (!empty($filters['due'])){
+            $baseWhere .= " AND DATE(t.ticket_due_date) = ?";
+            $params[] = $filters['due'];
+        }
+
+        try{
+            // total count for pagination
+            $countSql = "SELECT COUNT(*) as total FROM tickets t" . $baseWhere;
+            $countStmt = $conn->prepare($countSql);
+            $countStmt->execute($params);
+            $total = (int)$countStmt->fetchColumn();
+
+            // data rows
+            $dataSql = "SELECT
+                            t.ticket_ID AS id,
+                            t.hei_ID,
+                            t.ticket_title,
+                            t.ticket_category,
+                            t.ticket_priority,
+                            t.ticket_status,
+                            t.ticket_due_date,
+                            ip.inst_name AS hei_name,
+                            t.ticket_created_at
+                        FROM tickets t
+                        LEFT JOIN institutional_profile_data ip ON ip.hei_ID = t.hei_ID"
+                        . $baseWhere . " ORDER BY t.ticket_created_at DESC LIMIT ? OFFSET ?";
+
+            // bind pagination params separately
+            $dataParams = $params;
+            $dataParams[] = (int)$perPage;
+            $dataParams[] = (int)$offset;
+
+            $dataStmt = $conn->prepare($dataSql);
+            $dataStmt->execute($dataParams);
+            $rows = $dataStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            return [
+                'rows' => $rows,
+                'total' => $total
+            ];
+        }catch(PDOException $e){
+            error_log('getTicketsForHEI error: ' . $e->getMessage());
+            return ['rows' => [], 'total' => 0];
+        }
+    }
+
+    /**
+     * Fetch a single ticket by its ID. Return associative row or null.
+     */
+    function getTicketById($ticketId){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT t.*, ip.inst_name AS hei_name
+                    FROM tickets t
+                    LEFT JOIN institutional_profile_data ip ON ip.hei_ID = t.hei_ID
+                    WHERE t.ticket_ID = ? LIMIT 1";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$ticketId]);
+            $ticket = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $ticket ?: null;
+        }catch(PDOException $e){
+            error_log('getTicketById error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Create a ticket on behalf of an HEI user. Return inserted ticket ID (int) or false on failure.
+     */
+    function createTicketForHEI($heiId, $heiUserId, $title, $category, $priority, $dueDate, $description){
+        $conn = $this->opencon();
+        try{
+            $conn->beginTransaction();
+
+            // Build insert dynamically depending on available columns (support hei_user_ID or ched_user_ID nullable)
+            $cols = ['hei_ID','ticket_title','ticket_category','ticket_priority','ticket_due_date','ticket_description'];
+            $placeholders = array_fill(0, count($cols), '?');
+            $values = [$heiId, $title, $category, $priority, $dueDate, $description];
+
+            // If hei_user_ID column exists, include it
+            $colCheck = $conn->query("SHOW COLUMNS FROM tickets LIKE 'hei_user_ID'")->fetchAll(PDO::FETCH_ASSOC);
+            if ($colCheck) {
+                array_unshift($cols, 'hei_user_ID');
+                array_unshift($placeholders, '?');
+                array_unshift($values, $heiUserId);
+            } else {
+                // keep compatibility: if ched_user_ID exists and allows NULL, we skip it (HEI created)
+            }
+
+            $sql = "INSERT INTO tickets (" . implode(',', $cols) . ") VALUES (" . implode(',', $placeholders) . ")";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute($values);
+
+            $ticketID = $conn->lastInsertId();
+
+            // Optionally create an initial comment record if ticket_comments exists
+            $commentsCheck = $conn->query("SHOW TABLES LIKE 'ticket_comments'")->fetchAll(PDO::FETCH_ASSOC);
+            if ($commentsCheck) {
+                // Use the centralized comment inserter to match schema
+                $this->addCommentToTicket($ticketID, 'hei', $heiUserId, $description);
+            }
+
+            $conn->commit();
+            return $ticketID;
+        }catch(PDOException $e){
+            if ($conn->inTransaction()) $conn->rollBack();
+            error_log('createTicketForHEI error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Update ticket fields. $fields is an associative array of column => value.
+     * Return boolean success.
+     */
+    function updateTicket($ticketId, $fields){
+        if (empty($fields) || !is_array($fields)) return false;
+        $conn = $this->opencon();
+        try{
+            $sets = [];
+            $params = [];
+            foreach ($fields as $col => $val){
+                $sets[] = "$col = ?";
+                $params[] = $val;
+            }
+            $params[] = $ticketId;
+            $sql = "UPDATE tickets SET " . implode(', ', $sets) . " WHERE ticket_ID = ?";
+            $stmt = $conn->prepare($sql);
+            return $stmt->execute($params);
+        }catch(PDOException $e){
+            error_log('updateTicket error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Change ticket status (e.g., open -> resolved). Return boolean success.
+     */
+    function changeTicketStatus($ticketId, $status, $updatedBy){
+        $conn = $this->opencon();
+        try{
+            $conn->beginTransaction();
+            $stmt = $conn->prepare("UPDATE tickets SET ticket_status = ? WHERE ticket_ID = ?");
+            $ok = $stmt->execute([$status, $ticketId]);
+
+            // If there is a ticket_status_history table, insert a history row
+            $histCheck = $conn->query("SHOW TABLES LIKE 'ticket_status_history'")->fetchAll(PDO::FETCH_ASSOC);
+            if ($histCheck) {
+                $hstmt = $conn->prepare("INSERT INTO ticket_status_history (ticket_ID, status, changed_by, changed_at) VALUES (?,?,?,NOW())");
+                $hstmt->execute([$ticketId, $status, $updatedBy]);
+            }
+
+            $conn->commit();
+            return (bool)$ok;
+        }catch(PDOException $e){
+            if ($conn->inTransaction()) $conn->rollBack();
+            error_log('changeTicketStatus error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Add a comment to a ticket. userType = 'hei'|'ched' etc. Return inserted comment ID or false.
+     */
+    function addCommentToTicket($ticketId, $userType, $userId, $content){
+        $conn = $this->opencon();
+        try{
+            $check = $conn->query("SHOW TABLES LIKE 'ticket_comments'")->fetchAll(PDO::FETCH_ASSOC);
+            if (!$check) return false; // comments table not available
+
+            // The actual schema uses columns: comment_ID, ticket_ID, ched_user_ID, hei_user_ID, comment_desc, comment_timestamp
+            if ($userType === 'hei') {
+                $stmt = $conn->prepare("INSERT INTO ticket_comments (ticket_ID, hei_user_ID, comment_desc, comment_timestamp) VALUES (?,?,?,NOW())");
+                $stmt->execute([$ticketId, $userId, $content]);
+            } else if ($userType === 'ched') {
+                $stmt = $conn->prepare("INSERT INTO ticket_comments (ticket_ID, ched_user_ID, comment_desc, comment_timestamp) VALUES (?,?,?,NOW())");
+                $stmt->execute([$ticketID = $ticketId, $userId, $content]);
+            } else {
+                // fallback: record as system comment without user id
+                $stmt = $conn->prepare("INSERT INTO ticket_comments (ticket_ID, comment_desc, comment_timestamp) VALUES (?,?,NOW())");
+                $stmt->execute([$ticketId, $content]);
+            }
+            return $conn->lastInsertId();
+        }catch(PDOException $e){
+            error_log('addCommentToTicket error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get comments for a ticket. Return array of associative rows.
+     */
+    function getCommentsForTicket($ticketId){
+        $conn = $this->opencon();
+        try{
+            // Map actual ticket_comments schema to a normalized shape used by views:
+            // comment_ID -> id
+            // comment_desc -> comment
+            // comment_timestamp -> created_at
+            // hei_user_ID / ched_user_ID -> user_type + user_ID
+            // Also join to HEI_user and ched_users to fetch display name when available.
+            $sql = "SELECT
+                        tc.comment_ID AS id,
+                        tc.ticket_ID,
+                        tc.ched_user_ID,
+                        tc.hei_user_ID,
+                        tc.comment_desc AS comment,
+                        tc.comment_timestamp AS created_at,
+                        CASE WHEN tc.hei_user_ID IS NOT NULL THEN 'hei' WHEN tc.ched_user_ID IS NOT NULL THEN 'ched' ELSE 'system' END AS user_type,
+                        COALESCE(CONCAT(h.hei_first_name, ' ', h.hei_last_name), CONCAT(cu.ched_first_name, ' ', cu.ched_last_name), 'System') AS user_name,
+                        COALESCE(tc.hei_user_ID, tc.ched_user_ID) AS user_ID
+                    FROM ticket_comments tc
+                    LEFT JOIN HEI_user h ON tc.hei_user_ID = h.hei_user_ID
+                    LEFT JOIN ched_users cu ON tc.ched_user_ID = cu.ched_ID
+                    WHERE tc.ticket_ID = ?
+                    ORDER BY tc.comment_timestamp ASC";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$ticketId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }catch(PDOException $e){
+            error_log('getCommentsForTicket error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get recent tickets for an HEI (small list for dashboard).
+     * Return array of associative rows.
+     */
+    function getRecentTicketsForHEI($heiId, $limit = 5){
+        $conn = $this->opencon();
+        try{
+            // Map institution id -> hei_user IDs if needed (tickets.hei_ID references HEI_user.hei_user_ID)
+            $checkUser = $conn->prepare("SELECT 1 FROM HEI_user WHERE hei_user_ID = ? LIMIT 1");
+            $checkUser->execute([$heiId]);
+            if ($checkUser->fetch()) {
+                $sql = "SELECT ticket_ID AS id, ticket_title, ticket_status, ticket_priority, ticket_created_at
+                        FROM tickets
+                        WHERE hei_ID = ?
+                        ORDER BY ticket_created_at DESC
+                        LIMIT ?";
+                $stmt = $conn->prepare($sql);
+                $stmt->bindValue(1, $heiId, PDO::PARAM_INT);
+                $stmt->bindValue(2, (int)$limit, PDO::PARAM_INT);
+                $stmt->execute();
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } else {
+                $uStmt = $conn->prepare("SELECT hei_user_ID FROM HEI_user WHERE hei_ID = ?");
+                $uStmt->execute([$heiId]);
+                $uids = $uStmt->fetchAll(PDO::FETCH_COLUMN);
+                if (empty($uids)) return [];
+                $placeholders = implode(',', array_fill(0, count($uids), '?'));
+                $sql = "SELECT ticket_ID AS id, ticket_title, ticket_status, ticket_priority, ticket_created_at
+                        FROM tickets
+                        WHERE hei_ID IN ($placeholders)
+                        ORDER BY ticket_created_at DESC
+                        LIMIT ?";
+                $stmt = $conn->prepare($sql);
+                $i = 1;
+                foreach ($uids as $uid) $stmt->bindValue($i++, (int)$uid, PDO::PARAM_INT);
+                $stmt->bindValue($i, (int)$limit, PDO::PARAM_INT);
+                $stmt->execute();
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+        }catch(PDOException $e){
+            error_log('getRecentTicketsForHEI error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Return counts grouped by status for an HEI (useful for quick badges).
+     * Return shape: [ 'open' => 0, 'pending' => 0, 'resolved' => 0, 'other' => 0 ]
+     */
+    function getTicketCountsForHEI($heiId){
+        $conn = $this->opencon();
+        try{
+            // Map institution id to hei_user ids if necessary
+            $checkUser = $conn->prepare("SELECT 1 FROM HEI_user WHERE hei_user_ID = ? LIMIT 1");
+            $checkUser->execute([$heiId]);
+            if ($checkUser->fetch()) {
+                $sql = "SELECT ticket_status, COUNT(*) AS cnt FROM tickets WHERE hei_ID = ? GROUP BY ticket_status";
+                $stmt = $conn->prepare($sql);
+                $stmt->execute([$heiId]);
+            } else {
+                $uStmt = $conn->prepare("SELECT hei_user_ID FROM HEI_user WHERE hei_ID = ?");
+                $uStmt->execute([$heiId]);
+                $uids = $uStmt->fetchAll(PDO::FETCH_COLUMN);
+                if (empty($uids)) return ['open'=>0,'pending'=>0,'resolved'=>0,'other'=>0,'total'=>0];
+                $placeholders = implode(',', array_fill(0, count($uids), '?'));
+                $sql = "SELECT ticket_status, COUNT(*) AS cnt FROM tickets WHERE hei_ID IN ($placeholders) GROUP BY ticket_status";
+                $stmt = $conn->prepare($sql);
+                $stmt->execute($uids);
+            }
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $out = ['open'=>0,'pending'=>0,'resolved'=>0,'other'=>0];
+            foreach($rows as $r){
+                $s = (int)$r['ticket_status'];
+                $c = (int)$r['cnt'];
+                if ($s === 0) $out['open'] = $c;
+                else if ($s === 1) $out['pending'] = $c;
+                else if ($s === 2) $out['resolved'] = $c;
+                else $out['other'] += $c;
+            }
+            $out['total'] = array_sum(array_values($out));
+            return $out;
+        }catch(PDOException $e){
+            error_log('getTicketCountsForHEI error: ' . $e->getMessage());
+            return ['open'=>0,'pending'=>0,'resolved'=>0,'other'=>0,'total'=>0];
+        }
+    }
+
     /*
     ======================================================================
     TODO: Missing backend functions (stubs / signatures) required by pages
