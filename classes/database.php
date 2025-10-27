@@ -1,8 +1,27 @@
 <?php
 
+
+/**
+ * =============================================================
+ * DATABASE HELPER CLASS
+ *
+ * Function Organization Guide:
+ * - [CHED] ... : Used by CHED users/pages
+ * - [HEI]  ... : Used by HEI users/pages
+ * - [SHARED] ... : Used by both user types or system-wide
+ *
+ * Each section is grouped by feature/page for easier navigation.
+ * =============================================================
+ */
 class database{
 
-    // Open database connection
+    // =============================================================
+    // [SHARED] Core: Database Connection
+    // =============================================================
+    /**
+     * Open database connection
+     * (SHARED) Used by all pages
+     */
     function opencon(){
         try {
             $pdo = new PDO('mysql:host=127.0.0.1;dbname=CHED_document_repository;charset=utf8mb4', 'root', '');
@@ -15,11 +34,16 @@ class database{
         }
     }
 
-    // CHED Funcitons
-
-    // Account Functions
+    // =============================================================
+    // [CHED] Account Functions (Login, User Management)
+    // Pages: CHED Login, User Management
+    // =============================================================
 
     //Login
+    /**
+     * Login CHED user
+     * (CHED) ched_login.php
+     */
     function loginCHEDUser($id, $password){
         $conn = $this->opencon();
         $stmt = $conn->prepare("SELECT ched_ID, ched_last_name, ched_first_name, ched_role, ched_password FROM ched_users WHERE ched_ID = ?");
@@ -35,9 +59,16 @@ class database{
 
     // TODOS: Forgot Password, Change Password, Create User, Update User, Delete User
 
-    // CHED Dashboard Page Functions
+    // =============================================================
+    // [CHED] Dashboard Page Functions
+    // Pages: CHED Dashboard (ched-dashboard.php)
+    // =============================================================
 
     // Get total number of HEIs
+    /**
+     * Get total number of HEIs
+     * (CHED) ched-dashboard.php
+     */
     function getTotalHEIs(){
         $conn = $this->opencon();
         $stmt = $conn->query("SELECT COUNT(*) as total FROM institutional_profile_data");
@@ -46,6 +77,10 @@ class database{
     }
 
     // Get total number of pending tickets
+    /**
+     * Get total number of pending tickets
+     * (CHED) ched-dashboard.php
+     */
     function getTotalPendingTickets(){
         $conn = $this->opencon();
         $stmt = $conn->query("SELECT COUNT(*) as total FROM tickets WHERE ticket_status = 1");
@@ -54,6 +89,10 @@ class database{
     }
 
     // Recent Tickets Fetch
+    /**
+     * Get recent tickets for dashboard
+     * (CHED) ched-dashboard.php
+     */
     function getRecentTickets(){
         $conn = $this->opencon();
         $stmt = $conn->prepare("SELECT t.ticket_ID AS id, t.hei_ID, h.inst_name AS hei_name, t.ticket_title, t.ticket_category, t.ticket_priority, t.ticket_status, t.ticket_created_at 
@@ -66,6 +105,10 @@ class database{
     }
 
     // Get total number of enrollment records updated in the current week
+    /**
+     * Get total number of enrollment records updated in the current week
+     * (CHED) ched-dashboard.php
+     */
     function getTotalEnrollmentUpdates(){
         $conn = $this->opencon();
         $stmt = $conn->query("SELECT COUNT(*) as total FROM update_history u 
@@ -76,6 +119,10 @@ class database{
     }
 
     // Get total number of faculty records updated in the current week
+    /**
+     * Get total number of faculty records updated in the current week
+     * (CHED) ched-dashboard.php
+     */
     function getTotalFacultyUpdates(){
         $conn = $this->opencon();
         $stmt = $conn->query("SELECT COUNT(*) as total FROM update_history u 
@@ -86,6 +133,10 @@ class database{
     }
 
     // Get total number of graduates records updated in the current week
+    /**
+     * Get total number of graduates records updated in the current week
+     * (CHED) ched-dashboard.php
+     */
     function getTotalGraduatesUpdates(){
         $conn = $this->opencon();
         $stmt = $conn->query("SELECT COUNT(*) as total FROM update_history u 
@@ -95,9 +146,16 @@ class database{
         return $result ? $result['total'] : 0;
     }
 
-    // CHED Institutions Page Functions
+    // =============================================================
+    // [CHED] Institutions Page Functions
+    // Pages: CHED Institutions (view-heis.php, manage-data-templates.php)
+    // =============================================================
 
     // Fetch all Region Names
+    /**
+     * Fetch all Region Names
+     * (CHED) view-heis.php, manage-data-templates.php
+     */
     function fetchAllRegions(){
         $conn = $this->opencon();
         $stmt = $conn->query("SELECT DISTINCT region_ID, region_number, region_division FROM national_regions ORDER BY region_number");
@@ -105,6 +163,10 @@ class database{
     }
 
     // Fetch all institution types
+    /**
+     * Fetch all institution types
+     * (CHED) view-heis.php, manage-data-templates.php
+     */
     function fetchAllInstitutionTypes(){
         $conn = $this->opencon();
         $stmt = $conn->query("SELECT DISTINCT inst_type_ID, inst_type_code, inst_type_desc FROM institution_type ORDER BY inst_type_code");
@@ -112,6 +174,10 @@ class database{
     }
 
     // Fetch Institutions
+    /**
+     * Fetch Institutions
+     * (CHED) view-heis.php
+     */
     function fetchInstitutions(){
         $conn = $this->opencon();
         $query = "SELECT ip.hei_ID as HEI_id, ip.inst_name as HEI_name, nr.region_number as HEI_region, it.inst_type_desc as HEI_type
@@ -124,6 +190,10 @@ class database{
     }
 
     // Fetch Institutions with filter
+    /**
+     * Fetch Institutions with filter
+     * (CHED) view-heis.php
+     */
     function fetchInstitutionsFiltered($regionId = null, $typeId = null){
         $conn = $this->opencon();
         $query = "SELECT ip.hei_ID as HEI_id, ip.inst_name as HEI_name, nr.region_number as HEI_region, it.inst_type_desc as HEI_type
@@ -136,9 +206,16 @@ class database{
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Institution Profile Page Functions
+    // =============================================================
+    // [CHED] Institution Profile Page Functions
+    // Pages: CHED institution-profile.php
+    // =============================================================
 
     // Fetch Institution Profile by HEI ID
+    /**
+     * Fetch Institution Profile by HEI ID
+     * (CHED) institution-profile.php
+     */
     function getInstitutionProfile($heiId){
         $conn = $this->opencon();
         $sql = "SELECT i.*,
@@ -156,9 +233,16 @@ class database{
         return $row;
     }
 
-    // Ticket Pages Functions
+    // =============================================================
+    // [SHARED] Ticket Pages Functions
+    // Pages: Ticket listing/details (CHED & HEI), Create Ticket
+    // =============================================================
 
     // Fetch Tickets
+    /**
+     * Fetch Tickets
+     * (SHARED) view-tickets.php, ched-dashboard.php, hei-dashboard.php
+     */
     function getTickets($filters = []){
         $conn = $this->opencon();
 
@@ -206,7 +290,14 @@ class database{
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Fetch HEIs for dropdown
+    // =============================================================
+    // [SHARED] HEI Dropdown/Selection Helpers
+    // Pages: Ticket creation, filters, etc.
+    // =============================================================
+    /**
+     * Fetch HEIs for dropdown
+     * (SHARED) create-ticket.php, filters, etc.
+     */
     function getHEIs($filters = []){
         $conn = $this->opencon();
         $query = "SELECT hei_ID as id, inst_name as name
@@ -229,7 +320,14 @@ class database{
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Create Ticket
+    // =============================================================
+    // [CHED] Create Ticket (CHED creates for HEI)
+    // Pages: CHED create-ticket.php
+    // =============================================================
+    /**
+     * Create Ticket
+     * (CHED) create-ticket.php
+     */
     function createTicket($heiID, $chedUserID, $title, $category, $priority, $dueDate, $description){
         $conn = $this->opencon();
 
@@ -249,11 +347,16 @@ class database{
         }
     }
 
-    // HEI Functions
-
-    // Account Functions
+    // =============================================================
+    // [HEI] Account Functions (Login, User Management)
+    // Pages: HEI Login, User Management
+    // =============================================================
 
     // HEI Login
+    /**
+     * HEI Login
+     * (HEI) hei_login.php
+     */
     function loginHEIUser($email, $password){
         $conn = $this->opencon();
         $stmt = $conn->prepare("SELECT hei_user_ID, hei_ID, hei_first_name, hei_last_name, hei_role, hei_password FROM HEI_user WHERE hei_email = ?");
@@ -268,20 +371,15 @@ class database{
     }
 
 
-    /**
-     * HEI Dashboard & Tickets helper stubs
-     *
-     * The functions below are lightweight stubs that return consistent
-     * shapes and include TODO markers. Implement the SQL and logic later
-     * following the project's conventions (use $this->opencon(), prepared
-     * statements, transactions where needed, and return associative arrays
-     * / ints / booleans as appropriate).
-     */
+    // =============================================================
+    // [HEI] Dashboard & Ticket Helpers
+    // Pages: HEI Dashboard, HEI ticket listing/details
+    // =============================================================
 
+    // --- Dashboard stats, ticket lists, ticket counts ---
     /**
      * Get aggregated dashboard stats for a specific HEI.
-     * Return shape: [ 'totalTickets'=>int, 'open'=>int, 'pending'=>int, 'resolved'=>int,
-     *                 'enrollmentUpdates'=>int, 'facultyUpdates'=>int, 'graduatesUpdates'=>int ]
+     * (HEI) hei-dashboard.php
      */
     function getHEIDashboardStats($heiId){
         $conn = $this->opencon();
@@ -373,9 +471,10 @@ class database{
         }
     }
 
+    // --- Ticket list for HEI ---
     /**
      * Fetch tickets for a specific HEI with optional filters and pagination.
-     * Return shape: [ 'rows' => [..assoc rows..], 'total' => int ]
+     * (HEI) hei-dashboard.php, view-tickets.php
      */
     function getTicketsForHEI($heiId, $filters = [], $page = 1, $perPage = 25){
         $conn = $this->opencon();
@@ -464,8 +563,10 @@ class database{
         }
     }
 
+    // --- Fetch single ticket (used by both CHED and HEI) ---
     /**
      * Fetch a single ticket by its ID. Return associative row or null.
+     * (SHARED) ticket-details.php (CHED & HEI)
      */
     function getTicketById($ticketId){
         $conn = $this->opencon();
@@ -485,8 +586,10 @@ class database{
         }
     }
 
+    // --- HEI creates ticket (HEI user) ---
     /**
      * Create a ticket on behalf of an HEI user. Return inserted ticket ID (int) or false on failure.
+     * (HEI) create-ticket.php
      */
     function createTicketForHEI($heiId, $heiUserId, $title, $category, $priority, $dueDate, $description){
         $conn = $this->opencon();
@@ -530,9 +633,10 @@ class database{
         }
     }
 
+    // --- Update ticket fields (shared) ---
     /**
      * Update ticket fields. $fields is an associative array of column => value.
-     * Return boolean success.
+     * (SHARED) edit-ticket.php (CHED & HEI)
      */
     function updateTicket($ticketId, $fields){
         if (empty($fields) || !is_array($fields)) return false;
@@ -554,8 +658,10 @@ class database{
         }
     }
 
+    // --- Change ticket status (CHED only, enforced in UI) ---
     /**
      * Change ticket status (e.g., open -> resolved). Return boolean success.
+     * (CHED) ticket-details.php
      */
     function changeTicketStatus($ticketId, $status, $updatedBy){
         $conn = $this->opencon();
@@ -580,8 +686,10 @@ class database{
         }
     }
 
+    // --- Add comment to ticket (shared) ---
     /**
      * Add a comment to a ticket. userType = 'hei'|'ched' etc. Return inserted comment ID or false.
+     * (SHARED) ticket-details.php (CHED & HEI)
      */
     function addCommentToTicket($ticketId, $userType, $userId, $content){
         $conn = $this->opencon();
@@ -608,8 +716,10 @@ class database{
         }
     }
 
+    // --- Get comments for ticket (shared) ---
     /**
      * Get comments for a ticket. Return array of associative rows.
+     * (SHARED) ticket-details.php (CHED & HEI)
      */
     function getCommentsForTicket($ticketId){
         $conn = $this->opencon();
@@ -644,9 +754,10 @@ class database{
         }
     }
 
+    // --- Recent tickets for HEI dashboard ---
     /**
      * Get recent tickets for an HEI (small list for dashboard).
-     * Return array of associative rows.
+     * (HEI) hei-dashboard.php
      */
     function getRecentTicketsForHEI($heiId, $limit = 5){
         $conn = $this->opencon();
@@ -689,9 +800,10 @@ class database{
         }
     }
 
+    // --- Ticket status counts for HEI ---
     /**
      * Return counts grouped by status for an HEI (useful for quick badges).
-     * Return shape: [ 'open' => 0, 'pending' => 0, 'resolved' => 0, 'other' => 0 ]
+     * (HEI) hei-dashboard.php
      */
     function getTicketCountsForHEI($heiId){
         $conn = $this->opencon();
@@ -736,14 +848,8 @@ class database{
     TODO: Missing backend functions (stubs / signatures) required by pages
     ======================================================================
 
-    Follow the same pattern used above (use $this->opencon(), prepared
-    statements, return associative arrays or booleans). Implement these
-    functions below when ready. They are grouped by feature/page and
-    include suggested signatures and short notes.
-
     Authentication & Account
     ------------------------
-    DONE // function loginHEIUser($email, $password)
     // function createCHEDUser($data)
     // function createHEIUser($heiId, $data)
     // function updateUser($userId, $fields)
@@ -755,7 +861,6 @@ class database{
     ---------------------
     // function getTickets($filters = [], $page = 1, $perPage = 25)
     // function getTicketById($ticketId)
-    DONE // function createTicket($data)
     // function updateTicket($ticketId, $data)
     // function changeTicketStatus($ticketId, $status, $updatedBy)
     // function assignTicket($ticketId, $assigneeId)
@@ -770,8 +875,6 @@ class database{
 
     HEI / Institutions
     -------------------
-    DONE // function getHEIs($filters = [])
-    DONE // function getInstitutionProfile($heiId)
     // function updateInstitutionProfile($heiId, $data)
 
     Enrollment / Faculty / Graduates (CRUD)
