@@ -859,22 +859,24 @@ class database{
 
     Tickets (CHED & HEI)
     ---------------------
-    // function getTickets($filters = [], $page = 1, $perPage = 25)
-    // function getTicketById($ticketId)
-    // function updateTicket($ticketId, $data)
-    // function changeTicketStatus($ticketId, $status, $updatedBy)
+    // DONE function getTickets($filters = [], $page = 1, $perPage = 25)
+    // DONE function getTicketById($ticketId)
+    // DONE function updateTicket($ticketId, $data)
+    // DONE function changeTicketStatus($ticketId, $status, $updatedBy)
     // function assignTicket($ticketId, $assigneeId)
 
     Comments & Notifications
     ------------------------
-    // function getCommentsForTicket($ticketId)
-    // function addComment($ticketId, $userType, $userId, $content)
+    // DONE function getCommentsForTicket($ticketId)
+    // DONE function addComment($ticketId, $userType, $userId, $content)
     // function getNotificationsForUser($userId, $userType)
     // function createNotification($userId, $type, $title, $message, $link)
     // function markNotificationRead($notifId)
 
     HEI / Institutions
     -------------------
+    // DONE function getHEIs($filters = [])
+    // DONE function getInstitutionProfile($heiId)
     // function updateInstitutionProfile($heiId, $data)
 
     Enrollment / Faculty / Graduates (CRUD)
