@@ -1,6 +1,5 @@
 <?php
 
-
 /**
  * =============================================================
  * DATABASE HELPER CLASS
@@ -345,6 +344,109 @@ class database{
             $conn ->rollBack();
             return false;
         }
+    }
+
+    // =============================================================
+    // [CHED] Template Management Functions
+    // Pages: manage-data-templates.php
+    // =============================================================
+
+    /**
+     * Fetch all templates (optionally filter by status/category)
+     * (CHED) manage-data-templates.php
+     */
+    function getTemplates($filters = []){
+        $conn = $this->opencon();
+        $sql = "SELECT * FROM templates WHERE 1=1";
+        $params = [];
+        if (!empty($filters['status'])) {
+            $sql .= " AND status = ?";
+            $params[] = $filters['status'];
+        }
+        if (!empty($filters['category'])) {
+            $sql .= " AND template_category = ?";
+            $params[] = $filters['category'];
+        }
+        $sql .= " ORDER BY created_at DESC";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Upload a new template (insert row and file path)
+     * (CHED) manage-data-templates.php
+     */
+    function uploadTemplate($meta){
+        $conn = $this->opencon();
+        // include template_version if provided
+        $sql = "INSERT INTO templates (template_name, template_category, template_version, template_file_rel_path, status, template_udd_ID) VALUES (?, ?, ?, ?, ?, ?)";
+        $stmt = $conn->prepare($sql);
+        $ok = $stmt->execute([
+            $meta['template_name'],
+            $meta['template_category'] ?? null,
+            $meta['template_version'] ?? null,
+            $meta['template_file_rel_path'] ?? null,
+            $meta['status'] ?? 'active',
+            $meta['template_udd_ID'] ?? null
+        ]);
+        return $ok ? $conn->lastInsertId() : false;
+    }
+
+    /**
+     * Soft delete a template by setting status to 'deprecated'.
+     * (CHED) manage-data-templates.php
+     */
+    function deleteTemplate($templateId){
+        $conn = $this->opencon();
+        try {
+            // record an update history row and attach it to the template
+            $stmt = $conn->prepare("INSERT INTO update_history (updated_at) VALUES (NOW())");
+            $stmt->execute();
+            $udd = (int)$conn->lastInsertId();
+
+            $sql = "UPDATE templates SET status = 'deprecated', template_udd_ID = ? WHERE template_ID = ?";
+            $stmt = $conn->prepare($sql);
+            return (bool)$stmt->execute([$udd, $templateId]);
+        } catch (PDOException $e) {
+            error_log('deleteTemplate error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Record a generic update in update_history and return the new update_ID
+     * (SHARED) used by other features to attach *_udd_ID foreign keys
+     */
+    function recordUpdate(){
+        $conn = $this->opencon();
+        try {
+            $stmt = $conn->prepare("INSERT INTO update_history (updated_at) VALUES (NOW())");
+            $stmt->execute();
+            return (int)$conn->lastInsertId();
+        } catch (PDOException $e) {
+            error_log('recordUpdate error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Permanently delete a template (requires password confirmation for CHED user)
+     * (CHED) manage-data-templates.php
+     */
+    function deleteTemplatePermanently($templateId, $chedUserId, $password){
+        $conn = $this->opencon();
+        // Verify password for CHED user
+        $stmt = $conn->prepare("SELECT ched_password FROM ched_users WHERE ched_ID = ? LIMIT 1");
+        $stmt->execute([$chedUserId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row || !password_verify($password, $row['ched_password'])) {
+            return false;
+        }
+        // Delete template
+        $sql = "DELETE FROM templates WHERE template_ID = ?";
+        $stmt = $conn->prepare($sql);
+        return $stmt->execute([$templateId]);
     }
 
     // =============================================================
