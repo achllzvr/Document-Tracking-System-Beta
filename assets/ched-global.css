@@ -55,6 +55,12 @@
   color: #1e293b;
 }
 
+/* Action color utility helpers (muted tones used across CHED UI) */
+.ched-text-rose-600 { color: #b91c1c; }    /* muted red */
+.ched-text-amber-600 { color: #92400e; }   /* muted orange/amber */
+.ched-text-emerald-600 { color: #065f46; } /* muted green */
+.ched-text-emerald-700 { color: #047857; }
+
 /* Form Elements */
 .ched-input, .ched-select {
   padding: 0.75rem 0.75rem;
@@ -69,7 +75,7 @@
   background: #f1f5f9;
   color: #1e293b;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease, transform 0.12s ease, box-shadow 0.12s ease;
 }
 .ched-btn-primary {
   background: #2563eb;
@@ -86,6 +92,68 @@
 }
 .ched-btn-outline:hover {
   background: #f1f5f9;
+}
+
+/* Button-color combos to ensure action colors appear (higher specificity than .ched-btn) */
+.ched-btn.ched-text-rose-600 {
+  color: #7f1d1d;
+  background: rgba(185,28,28,0.06);
+  border-color: rgba(185,28,28,0.12);
+}
+.ched-btn.ched-text-rose-600:hover {
+  color: #7a1a1a;
+  background: rgba(185,28,28,0.10);
+  border-color: rgba(185,28,28,0.18);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(16,24,40,0.04);
+}
+.ched-btn.ched-text-amber-600 {
+  color: #7a3912;
+  background: rgba(146,64,14,0.06);
+  border-color: rgba(146,64,14,0.12);
+}
+.ched-btn.ched-text-amber-600:hover {
+  color: #6b2f0f;
+  background: rgba(146,64,14,0.12);
+  border-color: rgba(146,64,14,0.18);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(16,24,40,0.035);
+}
+.ched-btn.ched-text-emerald-600 {
+  color: #065f46;
+  background: rgba(6,95,70,0.06);
+  border-color: rgba(6,95,70,0.12);
+}
+.ched-btn.ched-text-emerald-600:hover {
+  color: #05543b;
+  background: rgba(6,95,70,0.12);
+  border-color: rgba(6,95,70,0.18);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(16,24,40,0.035);
+}
+.ched-btn.ched-text-emerald-700 {
+  color: #047857;
+}
+
+.ched-btn:active {
+  transform: translateY(0) scale(0.997);
+}
+
+/* Ensure inner text elements inside buttons inherit the button color
+   so utility classes like .ched-text-amber-600 apply to the whole button
+   (prevents .ched-text-sm from forcing the grey color inside buttons). */
+.ched-btn .ched-text-sm,
+.ched-btn .ched-text-xs {
+  color: inherit;
+}
+
+/* Make sure SVG icons inside buttons use the current color (lucide uses stroke=currentColor)
+   so the icon and label are visually consistent. */
+.ched-btn svg,
+.ched-btn .lucide {
+  color: inherit;
+  stroke: currentColor;
+  fill: none;
 }
 
 /* Misc */

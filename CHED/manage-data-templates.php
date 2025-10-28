@@ -173,6 +173,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     header('Location: manage-data-templates.php'); exit;
   }
+
+  // Reactivate a deprecated template (requires password confirmation)
+  if (isset($_POST['reactivate_template'])) {
+    $tid = (int)($_POST['template_id'] ?? 0);
+    $pwd = $_POST['confirm_password'] ?? '';
+    $chedUserId = $_SESSION['chedID'] ?? null;
+    if ($tid && $chedUserId) {
+      $ok = $con->reactivateTemplate($tid, $chedUserId, $pwd);
+      if ($ok) {
+        $_SESSION['flash'] = [ 'icon'=>'success','title'=>'Re-activated','text'=>'Template re-activated successfully.' ];
+      } else {
+        $_SESSION['flash'] = [ 'icon'=>'error','title'=>'Re-activate failed','text'=>'Password incorrect or re-activate failed.' ];
+      }
+    }
+    header('Location: manage-data-templates.php'); exit;
+  }
 }
 
 ?>
@@ -219,88 +235,149 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <a href="?action=add" class="ched-btn ched-btn-primary">Add Template</a>
             </header>
 
-            <?php if ($editing):
-              // prefill from $editData if available
-              $vName = htmlspecialchars($editData['template_name'] ?? '', ENT_QUOTES);
-              $vCat = htmlspecialchars($editData['template_category'] ?? 'Enrollment', ENT_QUOTES);
-              $vVer = htmlspecialchars($editData['template_version'] ?? '', ENT_QUOTES);
-              $vId = (int)($editData['template_ID'] ?? 0);
-            ?>
-            <div class="p-5 border-b">
-              <form method="post" enctype="multipart/form-data" class="space-y-3">
-                <input type="hidden" name="edit_id" value="<?php echo $vId; ?>" />
-                <div>
-                  <label class="block text-xs">Name</label>
-                  <input name="template_name" value="<?php echo $vName; ?>" class="w-full px-2 py-1 rounded border" required />
+            <!-- Add/Edit modal (hidden by default) -->
+            <div id="templateModal" class="fixed inset-0 z-50 hidden items-center justify-center px-4">
+              <div class="absolute inset-0 bg-black/40"></div>
+              <div class="relative max-w-2xl w-full ched-card overflow-hidden">
+                <div class="p-4 border-b flex items-center justify-between">
+                  <h3 id="templateModalTitle" class="ched-font-semibold">Add Template</h3>
+                  <button id="closeTemplateModal" class="text-slate-600">✕</button>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
-                  <div>
-                    <label class="block text-xs">Category</label>
-                    <select name="template_category" class="w-full px-2 py-1 rounded border">
-                      <option <?php echo $vCat === 'Enrollment' ? 'selected' : ''; ?>>Enrollment</option>
-                      <option <?php echo $vCat === 'Faculty' ? 'selected' : ''; ?>>Faculty</option>
-                      <option <?php echo $vCat === 'Graduates' ? 'selected' : ''; ?>>Graduates</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="block text-xs">Version</label>
-                    <input name="template_version" value="<?php echo $vVer; ?>" class="w-full px-2 py-1 rounded border" placeholder="e.g. 1.1" />
-                  </div>
+                <div class="p-5">
+                  <form id="templateForm" method="post" enctype="multipart/form-data" class="space-y-3">
+                    <input type="hidden" name="edit_id" id="edit_id" value="" />
+                    <div>
+                      <label class="block text-xs">Name</label>
+                      <input id="template_name" name="template_name" value="" class="w-full px-2 py-1 rounded border" required />
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                      <div>
+                        <label class="block text-xs">Category</label>
+                        <select id="template_category" name="template_category" class="w-full px-2 py-1 rounded border">
+                          <option>Enrollment</option>
+                          <option>Faculty</option>
+                          <option>Graduates</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label class="block text-xs">Version</label>
+                        <input id="template_version" name="template_version" value="" class="w-full px-2 py-1 rounded border" placeholder="e.g. 1.1" />
+                      </div>
+                    </div>
+                    <div>
+                      <label class="block text-xs">Spreadsheet File (.xlsx)</label>
+                      <input id="uFile" name="uFile" type="file" accept=".xlsx" class="w-full" />
+                    </div>
+                    <div class="flex items-center justify-end gap-2 pt-2">
+                      <button type="button" id="cancelTemplate" class="ched-btn">Cancel</button>
+                      <button type="submit" name="save_template" class="ched-btn ched-btn-primary">Save</button>
+                    </div>
+                  </form>
                 </div>
-                <div>
-                  <label class="block text-xs">Spreadsheet File (.xlsx)</label>
-                  <input name="uFile" type="file" accept=".xlsx" class="w-full" />
-                </div>
-                <div class="flex items-center justify-end gap-2 pt-2">
-                  <a href="manage-data-templates.php" class="px-3 py-2 rounded border">Cancel</a>
-                  <button type="submit" name="save_template" class="px-3 py-2 rounded bg-blue-600 text-white">Save</button>
-                </div>
-              </form>
+              </div>
             </div>
-            <?php endif; ?>
 
-            <div class="p-5 ched-overflow-x-auto">
-              <table class="min-w-full ched-text-sm">
-                <thead class="ched-text-slate-800" style="border-bottom: 1px solid #e5e7eb;">
+              <div class="ched-overflow-x-auto">
+              <table class="w-full text-left">
+                <thead class="ched-text-sm" style="color: #64748b; background: #f8fafc;">
                   <tr>
-                    <th class="py-2 text-left">Name</th>
-                    <th class="text-left">Category</th>
-                    <th class="text-left">Version</th>
-                    <th class="text-left">File</th>
-                    <th>Actions</th>
+                    <th class="px-6 py-4 ched-font-semibold">Name</th>
+                    <th class="px-6 py-4 ched-font-semibold">Category</th>
+                    <th class="px-6 py-4 ched-font-semibold">Version</th>
+                    <th class="px-6 py-4 ched-font-semibold">Status</th>
+                    <th class="px-6 py-4 ched-font-semibold">File</th>
+                    <th class="px-6 py-4 ched-font-semibold">Actions</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody class="divide-y">
                   <?php
                     $templates = $con->getTemplates();
-                    if (empty($templates)) {
-                      echo '<tr><td colspan="5" class="py-6 text-center text-slate-500">No templates yet.</td></tr>';
-                    } else {
-                      foreach ($templates as $t) {
+                    $active = [];
+                    $deprecated = [];
+                    foreach (($templates ?: []) as $t) {
+                      if (($t['status'] ?? 'active') === 'deprecated') $deprecated[] = $t; else $active[] = $t;
+                    }
+
+                    $renderRows = function($rows) {
+                      if (empty($rows)) {
+                        echo '<tr><td colspan="6" class="py-6 text-center text-slate-500">No templates.</td></tr>';
+                        return;
+                      }
+                      foreach ($rows as $t) {
                         $tid = (int)($t['template_ID'] ?? $t['id'] ?? 0);
                         $tname = htmlspecialchars($t['template_name'] ?? $t['name'] ?? '-');
                         $tcat = htmlspecialchars($t['template_category'] ?? $t['category'] ?? '-');
                         $tver = htmlspecialchars($t['template_version'] ?? '-');
                         $tfile = htmlspecialchars($t['template_file_rel_path'] ?? '#');
-                        echo "<tr class='border-b'>
-                          <td class='py-2'>{$tname}</td>
-                          <td>{$tcat}</td>
-                          <td>{$tver}</td>
-                          <td>" . ($tfile && $tfile !== '#' ? "<a class='text-blue-600 underline' href='{$tfile}' target='_blank' rel='noopener'>Download</a>" : '-') . "</td>
-                          <td class='text-right'>
-                            <a href='?edit_id={$tid}' class='text-sm text-blue-600 hover:underline'>Replace</a>
-                            <form method='post' style='display:inline-block;margin-left:12px;'>
-                              <input type='hidden' name='template_id' value='{$tid}' />
-                              <button name='deprecate_template' class='text-sm text-rose-600 hover:underline' type='submit'>Deprecate</button>
-                            </form>
-                            <a href='?confirm_delete={$tid}' class='text-sm text-rose-700 hover:underline ml-3'>Delete Permanently</a>
+                        $tstatus = htmlspecialchars($t['status'] ?? 'active');
+                        // map template status to badge class
+                        $statusLower = strtolower($tstatus);
+                        $statusClass = 'prism-badge-status-default';
+                        if ($statusLower === 'active') $statusClass = 'prism-badge-status-open';
+                        elseif ($statusLower === 'deprecated') $statusClass = 'prism-badge-status-closed';
+                        echo "<tr class='hover:bg-slate-50'>
+                          <td class='px-6 py-4 align-middle'>
+                            <div class='ched-font-semibold ched-text-slate-800'>{$tname}</div>
+                            <div class='ched-text-xs' style='margin-top:0.25rem;color:#94a3b8;'>ID: {$tid}</div>
+                          </td>
+                          <td class='px-6 py-4 align-middle'>
+                            <div class='inline-flex ched-items-center px-3 py-1 rounded-full bg-slate-50 ched-text-sm ched-text-slate-800 border'>{$tcat}</div>
+                          </td>
+                          <td class='px-6 py-4 align-middle'>
+                            <div class='ched-text-sm ched-text-slate-800'>{$tver}</div>
+                          </td>
+                          <td class='px-6 py-4 align-middle'>
+                            <span class='prism-badge {$statusClass}'>{$tstatus}</span>
+                          </td>
+                          <td class='px-6 py-4 align-middle'>" . ($tfile && $tfile !== '#' ? "<a class='text-blue-600 underline' href='{$tfile}' target='_blank' rel='noopener'>Download</a>" : '-') . "</td>
+                          <td class='px-6 py-4 align-middle'>
+                            <div class='flex items-center gap-2'>
+                              " . (
+                                ($statusLower === 'deprecated')
+                                ? "<button class='open-reactivate-modal ched-btn ched-btn-outline ched-text-emerald-600 ched-items-center ched-gap-2 px-3 py-1' data-id='{$tid}' style='display:inline-flex;align-items:center;'><i data-lucide='check-circle' class='h-4 w-4'></i><span class='ched-text-sm'>Re-activate</span></button>"
+                                : "<form method='post' style='display:inline-block;margin:0;'><input type='hidden' name='template_id' value='{$tid}' /><button name='deprecate_template' class='ched-btn ched-btn-outline ched-text-amber-600 ched-items-center ched-gap-2 px-3 py-1' type='submit' style='display:inline-flex;align-items:center;'><i data-lucide='trash' class='h-4 w-4'></i><span class='ched-text-sm'>Deprecate</span></button></form>"
+                              ) . "
+                              <button class='open-delete-modal ched-btn ched-btn-outline ched-text-rose-600 ched-items-center ched-gap-2 px-3 py-1' data-id='{$tid}' style='display:inline-flex;align-items:center;'>
+                                <i data-lucide='x-circle' class='h-4 w-4'></i>
+                                <span class='ched-text-sm'>Delete</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>";
                       }
-                    }
+                    };
+
+                    // render active templates first
+                    $renderRows($active);
                   ?>
                 </tbody>
               </table>
+            </div>
+            <!-- Deprecated templates section -->
+            <div class="mt-8 ched-card">
+              <header class="ched-card-header ched-items-center ched-justify-between" style="display:flex;">
+                <div>
+                  <h3 class="ched-font-semibold">Deprecated Templates</h3>
+                  <p class="ched-text-sm">Previously used templates (deprecated)</p>
+                </div>
+              </header>
+              <div class="ched-overflow-x-auto">
+                <table class="w-full text-left">
+                  <thead class="ched-text-sm" style="color: #64748b; background: #f8fafc;">
+                    <tr>
+                      <th class="px-6 py-4 ched-font-semibold">Name</th>
+                      <th class="px-6 py-4 ched-font-semibold">Category</th>
+                      <th class="px-6 py-4 ched-font-semibold">Version</th>
+                      <th class="px-6 py-4 ched-font-semibold">Status</th>
+                      <th class="px-6 py-4 ched-font-semibold">File</th>
+                      <th class="px-6 py-4 ched-font-semibold">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y">
+                    <?php $renderRows($deprecated); ?>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </section>
 
@@ -311,27 +388,110 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   
 
-  <?php if ($confirmDeleteId): ?>
-    <section class="ched-card">
+  <!-- Delete permanently modal -->
+  <div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center px-4">
+    <div class="absolute inset-0 bg-black/40"></div>
+    <div class="relative max-w-md w-full ched-card overflow-hidden">
+      <div class="p-4 border-b flex items-center justify-between">
+        <h3 class="ched-font-semibold">Confirm Permanent Delete</h3>
+        <button id="closeDeleteModal" class="text-slate-600">✕</button>
+      </div>
       <div class="p-5">
-        <h3 class="font-semibold">Confirm Permanent Delete</h3>
-        <p class="text-sm text-slate-500">You are about to permanently delete template ID <?php echo $confirmDeleteId; ?>. This action cannot be undone.</p>
-        <form method="post" class="mt-4">
-          <input type="hidden" name="template_id" value="<?php echo $confirmDeleteId; ?>" />
+        <p class="text-sm text-slate-500">This action will permanently delete the selected template. Enter your CHED password to confirm.</p>
+        <form id="deleteForm" method="post" class="mt-4">
+          <input type="hidden" name="template_id" id="delete_template_id" value="" />
           <div>
-            <label class="block text-xs">Enter your CHED password to confirm</label>
-            <input type="password" name="confirm_password" required class="w-full px-2 py-1 rounded border" />
+            <label class="block text-xs">CHED password</label>
+            <input id="confirm_password" type="password" name="confirm_password" required class="w-full px-2 py-1 rounded border" />
           </div>
-          <div class="mt-3">
-            <a href="manage-data-templates.php" class="px-3 py-2 rounded border">Cancel</a>
-            <button type="submit" name="delete_template_permanent" class="px-3 py-2 rounded bg-rose-600 text-white">Delete Permanently</button>
+          <div class="mt-3 flex justify-end gap-2">
+            <button type="button" id="cancelDelete" class="ched-btn">Cancel</button>
+            <button type="submit" name="delete_template_permanent" class="ched-btn ched-btn-outline text-rose-700" style="background:#fee2e2;border-color:#fecaca;">Delete Permanently</button>
           </div>
         </form>
       </div>
-    </section>
-  <?php endif; ?>
+    </div>
+  </div>
+
+  <!-- Reactivate modal -->
+  <div id="reactivateModal" class="fixed inset-0 z-50 hidden items-center justify-center px-4">
+    <div class="absolute inset-0 bg-black/40"></div>
+    <div class="relative max-w-md w-full ched-card overflow-hidden">
+      <div class="p-4 border-b flex items-center justify-between">
+        <h3 class="ched-font-semibold">Confirm Reactivation</h3>
+        <button id="closeReactivateModal" class="text-slate-600">✕</button>
+      </div>
+      <div class="p-5">
+        <p class="text-sm text-slate-500">Re-activating this template will make it available again. Enter your CHED password to confirm.</p>
+        <form id="reactivateForm" method="post" class="mt-4">
+          <input type="hidden" name="template_id" id="reactivate_template_id" value="" />
+          <div>
+            <label class="block text-xs">CHED password</label>
+            <input id="reactivate_confirm_password" type="password" name="confirm_password" required class="w-full px-2 py-1 rounded border" />
+          </div>
+          <div class="mt-3 flex justify-end gap-2">
+            <button type="button" id="cancelReactivate" class="ched-btn">Cancel</button>
+            <button type="submit" name="reactivate_template" class="ched-btn ched-btn-outline text-emerald-700" style="background:#ecfdf5;border-color:#bbf7d0;">Re-activate</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
   <script>if (window.lucide) lucide.createIcons();</script>
     <?php echo $sweetAlertConfig; ?>
+  <script>
+    // Modal helpers
+    const templateModal = document.getElementById('templateModal');
+    const deleteModal = document.getElementById('deleteModal');
+    const openModal = (modal) => { modal.classList.remove('hidden'); modal.classList.add('flex'); };
+    const closeModal = (modal) => { modal.classList.remove('flex'); modal.classList.add('hidden'); };
+
+    // Open Add modal
+    document.querySelectorAll('a[href="?action=add"]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        // clear form
+        document.getElementById('edit_id').value = '';
+        document.getElementById('template_name').value = '';
+        document.getElementById('template_category').value = 'Enrollment';
+        document.getElementById('template_version').value = '';
+        openModal(templateModal);
+      });
+    });
+
+  // Close buttons
+  document.getElementById('closeTemplateModal').addEventListener('click', () => closeModal(templateModal));
+  document.getElementById('cancelTemplate').addEventListener('click', () => closeModal(templateModal));
+
+    // NOTE: Replace functionality removed — no client-side replace handlers
+
+    // Delete modal openers
+    document.querySelectorAll('.open-delete-modal').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = btn.getAttribute('data-id');
+        document.getElementById('delete_template_id').value = id;
+        document.getElementById('confirm_password').value = '';
+        openModal(deleteModal);
+      });
+    });
+    document.getElementById('closeDeleteModal').addEventListener('click', () => closeModal(deleteModal));
+    document.getElementById('cancelDelete').addEventListener('click', () => closeModal(deleteModal));
+
+    // Reactivate modal openers (for deprecated templates)
+    const reactivateModal = document.getElementById('reactivateModal');
+    document.querySelectorAll('.open-reactivate-modal').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = btn.getAttribute('data-id');
+        document.getElementById('reactivate_template_id').value = id;
+        document.getElementById('reactivate_confirm_password').value = '';
+        openModal(reactivateModal);
+      });
+    });
+    document.getElementById('closeReactivateModal').addEventListener('click', () => closeModal(reactivateModal));
+    document.getElementById('cancelReactivate').addEventListener('click', () => closeModal(reactivateModal));
+
+    // Server-side edit auto-open removed (Replace removed from UI)
+  </script>
 </body>
 </html>

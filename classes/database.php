@@ -449,6 +449,39 @@ class database{
         return $stmt->execute([$templateId]);
     }
 
+    /**
+     * Reactivate a deprecated template (requires CHED password confirmation)
+     * Returns true on success, false on failure (invalid password or DB error)
+     */
+    function reactivateTemplate($templateId, $chedUserId, $password){
+        $conn = $this->opencon();
+        // Verify password for CHED user
+        $stmt = $conn->prepare("SELECT ched_password FROM ched_users WHERE ched_ID = ? LIMIT 1");
+        $stmt->execute([$chedUserId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row || !password_verify($password, $row['ched_password'])) {
+            return false;
+        }
+
+        try {
+            $conn->beginTransaction();
+            // record update history row
+            $ustmt = $conn->prepare("INSERT INTO update_history (updated_at) VALUES (NOW())");
+            $ustmt->execute();
+            $udd = (int)$conn->lastInsertId();
+
+            $sql = "UPDATE templates SET status = 'active', template_udd_ID = ? WHERE template_ID = ?";
+            $stmt = $conn->prepare($sql);
+            $ok = (bool)$stmt->execute([$udd, $templateId]);
+            $conn->commit();
+            return $ok;
+        } catch (PDOException $e) {
+            if ($conn->inTransaction()) $conn->rollBack();
+            error_log('reactivateTemplate error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
     // =============================================================
     // [HEI] Account Functions (Login, User Management)
     // Pages: HEI Login, User Management
