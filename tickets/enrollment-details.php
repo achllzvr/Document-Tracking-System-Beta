@@ -43,7 +43,11 @@ $ticket = $db->getTicketById($ticketId);
             <div class="flex items-center justify-between mb-4">
               <div class="text-sm text-slate-600">Total rows: <strong><?php echo count($rows); ?></strong></div>
               <div class="flex items-center gap-2">
-                <a class="px-3 py-2 rounded border" href="/PRISM/HEI/ticket-details.php?ticket_id=<?php echo (int)$ticketId; ?>">Back to ticket</a>
+                <?php
+                  // choose appropriate ticket-details path based on authenticated user type
+                  $backBase = isset($_SESSION['chedID']) ? '/PRISM/CHED/ticket-details.php' : '/PRISM/HEI/ticket-details.php';
+                ?>
+                <a class="px-3 py-2 rounded border" href="<?php echo $backBase; ?>?ticket_id=<?php echo (int)$ticketId; ?>">Back to ticket</a>
               </div>
             </div>
 

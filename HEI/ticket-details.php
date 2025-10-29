@@ -47,7 +47,7 @@ $comments = $ticketId ? $db->getCommentsForTicket($ticketId) : [];
 
     <!-- Back button at top left -->
     <div style="max-width: 64rem; margin: 0 auto; position: relative;">
-      <a href="view-tickets.php" class="inline-flex items-center gap-2 px-3 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium absolute left-0 top-0 mt-4 ml-2 shadow-sm" style="z-index:10;">
+      <a href="/PRISM/HEI/view-tickets.php" class="inline-flex items-center gap-2 px-3 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium absolute left-0 top-0 mt-4 ml-2 shadow-sm" style="z-index:10;">
         <i data-lucide="arrow-left" class="w-4 h-4"></i> Back
       </a>
     </div>
