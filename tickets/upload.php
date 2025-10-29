@@ -218,9 +218,6 @@ if (!(isset($_GET['commit_token']) && $_GET['commit_token'])){
             $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($destPath);
             $spreadsheet = $reader->load($destPath);
             $loaded = true;
-        } elseif (class_exists('PHPExcel_IOFactory')){
-            $spreadsheet = PHPExcel_IOFactory::load($destPath);
-            $loaded = true;
         } else {
             respond(false, 'Spreadsheet library not available. Please install phpoffice/phpspreadsheet or PHPExcel.');
         }
