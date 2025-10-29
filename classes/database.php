@@ -33,6 +33,23 @@ class database{
         }
     }
 
+    /**
+     * Fetch enrollment_data rows associated with a ticket_ID
+     * Returns array of associative rows.
+     */
+    function getEnrollmentRowsByTicket($ticketId){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT enroll_ID, hei_ID, enr_acad_year, enr_term, enr_program, enr_program_major, enr_year_level, enr_sex, enr_total_count, enr_udd_ID, ticket_ID, enr_created_at FROM enrollment_data WHERE ticket_ID = ? ORDER BY enr_program, enr_year_level, enr_sex";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$ticketId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }catch(PDOException $e){
+            error_log('getEnrollmentRowsByTicket error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
     // =============================================================
     // [CHED] Account Functions (Login, User Management)
     // Pages: CHED Login, User Management

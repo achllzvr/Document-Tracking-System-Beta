@@ -38,7 +38,6 @@ $comments = $ticketId ? $db->getCommentsForTicket($ticketId) : [];
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
 </head>
 <body class="hei-min-h-screen">
   <?php require_once __DIR__ . '/../includes/header.php'; ?>
@@ -95,6 +94,100 @@ $comments = $ticketId ? $db->getCommentsForTicket($ticketId) : [];
             </div>
           <?php endif; ?>
         </section>
+
+        <?php
+          // Fetch any enrollment rows linked to this ticket (if present)
+          $enrollmentRows = $ticketId ? $db->getEnrollmentRowsByTicket($ticketId) : [];
+
+          // Prepare aggregated data for charts
+          $programTotals = [];
+          $yearSex = []; // [year_level][sex] => count
+          foreach ($enrollmentRows as $er){
+            $prog = $er['enr_program'] ?? 'Unknown';
+            $maj = $er['enr_program_major'] ?? '';
+            $label = $prog . ($maj ? ' — ' . $maj : '');
+            $cnt = (int)($er['enr_total_count'] ?? 0);
+            if (!isset($programTotals[$label])) $programTotals[$label] = 0;
+            $programTotals[$label] += $cnt;
+
+            $lvl = $er['enr_year_level'] ?? '';
+            $sex = strtolower($er['enr_sex'] ?? 'm') === 'f' ? 'female' : 'male';
+            if (!isset($yearSex[$lvl])) $yearSex[$lvl] = ['male'=>0,'female'=>0];
+            $yearSex[$lvl][$sex] += $cnt;
+          }
+        ?>
+
+        <?php if (!empty($enrollmentRows)): ?>
+        <section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+          <div class="px-5 pt-5 pb-3 border-b flex items-center justify-between">
+            <div>
+              <h3 class="font-semibold">Imported Enrollment Summary</h3>
+              <p class="text-sm text-slate-500">Visual summary of imported records for this ticket</p>
+            </div>
+            <div>
+              <a class="px-3 py-2 rounded bg-slate-100 border text-sm" href="/PRISM/tickets/enrollment-details.php?ticket_id=<?php echo (int)$ticketId; ?>">View detailed records</a>
+            </div>
+          </div>
+          <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <canvas id="progTotalsChart" height="200"></canvas>
+            </div>
+            <div>
+              <canvas id="yearSexChart" height="200"></canvas>
+            </div>
+          </div>
+        </section>
+        <?php
+          // Precompute arrays for Chart.js
+          $hei_prog_labels = array_keys($programTotals);
+          $hei_prog_data = array_values($programTotals);
+          // Normalize year keys: remove empty keys and sort numerically
+          $hei_years = array_keys($yearSex);
+          $hei_years = array_values(array_filter($hei_years, function($v){ return $v !== '' && $v !== null; }));
+          usort($hei_years, function($a,$b){ return intval($a) <=> intval($b); });
+          $hei_male = [];
+          $hei_female = [];
+          foreach ($hei_years as $y){
+            $hei_male[] = (int)(($yearSex[$y]['male'] ?? 0));
+            $hei_female[] = (int)(($yearSex[$y]['female'] ?? 0));
+          }
+        ?>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+        <script>
+          (function(){
+            var progLabels = <?php echo json_encode($hei_prog_labels); ?>;
+            var progData = <?php echo json_encode($hei_prog_data); ?>;
+
+            var ctx1 = document.getElementById('progTotalsChart').getContext('2d');
+            if (typeof Chart !== 'undefined'){
+              new Chart(ctx1, {
+                type: 'bar',
+                data: { labels: progLabels, datasets: [{ label: 'Total students', data: progData, backgroundColor: '#2563eb' }] },
+                options: { responsive:true, plugins:{legend:{display:false}}, scales:{x:{ticks:{maxRotation:45,minRotation:0}}} }
+              });
+            } else {
+              console.warn('Chart.js not available — progTotalsChart not rendered');
+              ctx1.canvas.parentNode.innerHTML = '<div class="text-sm text-slate-500">Chart unavailable (Chart.js not loaded)</div>';
+            }
+
+            var years = <?php echo json_encode($hei_years); ?>;
+            var maleData = <?php echo json_encode($hei_male); ?>;
+            var femaleData = <?php echo json_encode($hei_female); ?>;
+            console.log('HEI chart data', { years: years, male: maleData, female: femaleData, progLabels: progLabels });
+            var ctx2 = document.getElementById('yearSexChart').getContext('2d');
+            if (typeof Chart !== 'undefined'){
+              new Chart(ctx2, {
+                type: 'bar',
+                data: { labels: years, datasets:[{label:'Male', data: maleData, backgroundColor:'#0ea5e9'},{label:'Female', data:femaleData, backgroundColor:'#fb7185'}] },
+                options:{responsive:true, plugins:{title:{display:true,text:'By year level and sex'}}, scales:{x:{stacked:true}, y:{stacked:false}} }
+              });
+            } else {
+              console.warn('Chart.js not available — yearSexChart not rendered');
+              ctx2.canvas.parentNode.innerHTML = '<div class="text-sm text-slate-500">Chart unavailable (Chart.js not loaded)</div>';
+            }
+          })();
+        </script>
+        <?php endif; ?>
 
         <section class="grid md:grid-cols-1 gap-6">
           <div id="comments" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">

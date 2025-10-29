@@ -152,14 +152,16 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST'){
                             if (!rows.length){ uploadNote.textContent = 'No rows parsed. Check template format.'; commitBtn.classList.add('hidden'); return; }
                             var headers = ['Program','Program Major','Year Level','Sex','Total Count','Acad Year'];
                             gridHead.innerHTML = '<tr>'+headers.map(function(h){ return '<th class="px-4 py-2 text-left">'+h+'</th>'; }).join('')+'</tr>';
-                            gridBody.innerHTML = rows.map(function(r){ return '<tr class="odd:bg-white even:bg-slate-50'>
-                                + '<td class="px-4 py-2">'+(r.program||'')+'</td>'
-                                + '<td class="px-4 py-2">'+(r.program_major||'')+'</td>'
-                                + '<td class="px-4 py-2">'+(r.year_level||'')+'</td>'
-                                + '<td class="px-4 py-2">'+(r.sex||'')+'</td>'
-                                + '<td class="px-4 py-2">'+(r.total_count||'')+'</td>'
-                                + '<td class="px-4 py-2">'+(r.acad_year||'')+'</td>'
-                                + '</tr>'; }).join('\n');
+                            gridBody.innerHTML = rows.map(function(r){
+                                return '<tr class="odd:bg-white even:bg-slate-50">'
+                                    + '<td class="px-4 py-2">'+(r.program||'')+'</td>'
+                                    + '<td class="px-4 py-2">'+(r.program_major||'')+'</td>'
+                                    + '<td class="px-4 py-2">'+(r.year_level||'')+'</td>'
+                                    + '<td class="px-4 py-2">'+(r.sex||'')+'</td>'
+                                    + '<td class="px-4 py-2">'+(r.total_count||'')+'</td>'
+                                    + '<td class="px-4 py-2">'+(r.acad_year||'')+'</td>'
+                                    + '</tr>';
+                            }).join('\n');
                             if (Array.isArray(json.errors) && json.errors.length){ parseErrors.innerHTML = '<div class="font-semibold">Warnings / Errors:</div><ul>' + json.errors.map(function(e){ return '<li>'+e+'</li>'; }).join('') + '</ul>'; }
                             uploadNote.textContent = json.message + ' — ' + (json.rows_parsed || rows.length) + ' row(s) parsed.';
                             commitBtn.classList.remove('hidden');
