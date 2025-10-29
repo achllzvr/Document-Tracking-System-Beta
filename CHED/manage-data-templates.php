@@ -592,10 +592,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     const closeChangeCategory = document.getElementById('closeChangeCategory');
     const cancelChangeCategory = document.getElementById('cancelChangeCategory');
 
+    // store previous value so we can revert on cancel
+    const _prevCategory = new Map();
     document.querySelectorAll('.category-select').forEach(sel => {
+      const id = sel.getAttribute('data-id');
+      // save on focus or mousedown (covers keyboard and mouse interactions)
+      sel.addEventListener('focus', () => _prevCategory.set(id, sel.value));
+      sel.addEventListener('mousedown', () => _prevCategory.set(id, sel.value));
+
       sel.addEventListener('change', (e) => {
-        const id = sel.getAttribute('data-id');
         const newCat = sel.value;
+        // ensure we have the previous value recorded
+        if (!_prevCategory.has(id)) _prevCategory.set(id, sel.getAttribute('data-prev') || sel.value);
         // populate modal
         changeTemplateId.value = id;
         changeTemplateCategory.value = newCat;
@@ -605,8 +613,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       });
     });
 
-    if (closeChangeCategory) closeChangeCategory.addEventListener('click', () => closeModal(changeCategoryModal));
-    if (cancelChangeCategory) cancelChangeCategory.addEventListener('click', () => closeModal(changeCategoryModal));
+    // when the change form is submitted, clear the saved previous value for that id
+    if (changeForm) {
+      changeForm.addEventListener('submit', function(){
+        try{ _prevCategory.delete(changeTemplateId.value); }catch(e){}
+      });
+    }
+
+    if (closeChangeCategory) closeChangeCategory.addEventListener('click', () => {
+      // revert selection
+      const id = changeTemplateId.value;
+      const prev = _prevCategory.get(id);
+      if (prev !== undefined) {
+        const sel = document.querySelector('.category-select[data-id="' + id + '"]');
+        if (sel) sel.value = prev;
+        _prevCategory.delete(id);
+      }
+      closeModal(changeCategoryModal);
+    });
+    if (cancelChangeCategory) cancelChangeCategory.addEventListener('click', () => {
+      // revert selection
+      const id = changeTemplateId.value;
+      const prev = _prevCategory.get(id);
+      if (prev !== undefined) {
+        const sel = document.querySelector('.category-select[data-id="' + id + '"]');
+        if (sel) sel.value = prev;
+        _prevCategory.delete(id);
+      }
+      closeModal(changeCategoryModal);
+    });
   </script>
 </body>
 </html>

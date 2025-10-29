@@ -106,7 +106,7 @@ if(isset($_POST['login'])) {
         </div>
         <div>
           <h1 class="text-xl font-semibold">CHED PRISM</h1>
-          <p class="text-sm text-slate-500">Login to access the <span style="color: black; font-weight: 600;">P</span>ortal for <span style="color: black; font-weight: 600;">R</span>esearch, <span style="color: black; font-weight: 600;">I</span>nsights and <span style="color: black; font-weight: 600;">S</span>ubmission Management</p>
+          <p class="text-sm text-slate-500">Login to access the <span style="color: black; font-weight: 600;">P</span>ortal for <span style="color: black; font-weight: 600;">R</span>epository, <span style="color: black; font-weight: 600;">I</span>nsights and <span style="color: black; font-weight: 600;">S</span>ubmission Management</p>
         </div>
       </div>
 
