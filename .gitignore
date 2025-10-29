@@ -1,0 +1,9 @@
+# Ignore uploaded files (user uploads, previews, tmp storage)
+uploads/
+uploads/*
+
+# Node / PHP vendor and build artifacts (if not already ignored)
+node_modules/
+vendor/
+/.env
+/.env.local
