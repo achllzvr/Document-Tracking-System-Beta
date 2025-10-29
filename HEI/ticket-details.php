@@ -91,7 +91,7 @@ $comments = $ticketId ? $db->getCommentsForTicket($ticketId) : [];
             </div>
             <div class="px-5 pb-5 flex items-center gap-3">
               <a class="inline-flex items-center gap-2 px-3 py-2 rounded border hover:bg-slate-50" href="/PRISM/tickets/download-template.php?ticket_id=<?php echo (int)$ticketId; ?>" id="downloadBtn"><i data-lucide="download" class="h-4 w-4"></i> Download Template</a>
-              <a class="inline-flex items-center gap-2 px-3 py-2 rounded bg-blue-600 text-white" href="/PRISM/tickets/upload.php?ticket_id=<?php echo (int)$ticketId; ?>" id="uploadBtn"><i data-lucide="upload" class="h-4 w-4"></i> Upload Completed</a>
+              <button class="inline-flex items-center gap-2 px-3 py-2 rounded bg-blue-600 text-white" id="uploadBtn" data-ticket-id="<?php echo (int)$ticketId; ?>"><i data-lucide="upload" class="h-4 w-4"></i> Upload Completed</button>
             </div>
           <?php endif; ?>
         </section>
@@ -132,5 +132,66 @@ $comments = $ticketId ? $db->getCommentsForTicket($ticketId) : [];
     </main>
 
   <script>if (window.lucide) lucide.createIcons();</script>
+
+  <!-- Upload modal (hidden by default) -->
+  <div id="uploadModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:60;align-items:center;justify-content:center">
+    <div style="background:white;max-width:720px;margin:40px auto;border-radius:8px;padding:18px;">
+      <h3 style="margin:0 0 8px 0;font-size:18px">Upload Completed Template</h3>
+      <p style="margin:0 0 12px 0;color:#666">Choose the completed Excel file. Parsing will start automatically and you'll be redirected to a review page.</p>
+      <input type="file" id="completedFileInput" accept=".xls,.xlsx,.csv" />
+      <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
+        <button id="cancelUpload" class="px-3 py-2 rounded border">Cancel</button>
+      </div>
+      <div id="uploadStatus" style="margin-top:10px;color:#333;display:none">Parsing...</div>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    var uploadBtn = document.getElementById('uploadBtn');
+    var modal = document.getElementById('uploadModal');
+    var input = document.getElementById('completedFileInput');
+    var cancel = document.getElementById('cancelUpload');
+    var status = document.getElementById('uploadStatus');
+
+    uploadBtn && uploadBtn.addEventListener('click', function(e){
+      modal.style.display = 'flex';
+      input.value = null;
+      status.style.display = 'none';
+    });
+
+    cancel && cancel.addEventListener('click', function(){ modal.style.display = 'none'; });
+
+    input && input.addEventListener('change', function(){
+      var f = input.files && input.files[0];
+      if (!f) return;
+      status.style.display = 'block'; status.textContent = 'Parsing file — please wait...';
+      var ticketId = uploadBtn && uploadBtn.getAttribute('data-ticket-id');
+      var fd = new FormData();
+      fd.append('completedFile', f);
+      fd.append('ticket_id', ticketId || '');
+      fd.append('store_preview', 1);
+
+      fetch('/PRISM/tickets/upload.php?preview=1&ticket_id=' + encodeURIComponent(ticketId || ''), { method: 'POST', body: fd })
+      .then(r => r.json())
+        .then(function(j){
+        if (j && j.ok){
+          // If server returned a token, redirect to review page
+          var tok = (j.token || (j.data && j.data.token));
+          if (tok){
+            window.location.href = '/PRISM/tickets/upload-review.php?token=' + encodeURIComponent(tok);
+          } else {
+            // fallback: open the old upload page with ?ticket_id
+            window.location.href = '/PRISM/tickets/upload.php?ticket_id=' + encodeURIComponent(ticketId || '');
+          }
+        } else {
+          status.textContent = 'Parsing failed: ' + (j && j.message ? j.message : 'Unknown');
+        }
+      }).catch(function(e){
+        status.textContent = 'Network error while uploading file.';
+      });
+    });
+  })();
+  </script>
 </body>
 </html>

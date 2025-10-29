@@ -666,6 +666,125 @@ class database{
         }
     }
 
+    // =============================================================
+    // [HEI] Enrollment data CRUD
+    // =============================================================
+    /**
+     * Insert a single enrollment_data row and attach an update_history id.
+     * Returns inserted ID or false on failure.
+     */
+    function createEnrollmentRow($heiId, $acadYear, $term, $program, $programMajor, $yearLevel, $sex, $totalCount, $ticketId = null){
+        $conn = $this->opencon();
+        try{
+            $conn->beginTransaction();
+            // record update history
+            $stmt = $conn->prepare("INSERT INTO update_history (updated_at) VALUES (NOW())");
+            $stmt->execute();
+            $udd = (int)$conn->lastInsertId();
+
+            // include ticket_ID if provided to link imported rows to a ticket
+            if ($ticketId !== null) {
+                $sql = "INSERT INTO enrollment_data (hei_ID, enr_acad_year, enr_term, enr_program, enr_program_major, enr_year_level, enr_sex, enr_total_count, enr_udd_ID, ticket_ID) VALUES (?,?,?,?,?,?,?,?,?,?)";
+                $ist = $conn->prepare($sql);
+                $ok = $ist->execute([
+                    $heiId,
+                    $acadYear,
+                    $term,
+                    $program,
+                    $programMajor,
+                    $yearLevel,
+                    $sex,
+                    $totalCount,
+                    $udd,
+                    $ticketId
+                ]);
+            } else {
+                $sql = "INSERT INTO enrollment_data (hei_ID, enr_acad_year, enr_term, enr_program, enr_program_major, enr_year_level, enr_sex, enr_total_count, enr_udd_ID) VALUES (?,?,?,?,?,?,?,?,?)";
+                $ist = $conn->prepare($sql);
+                $ok = $ist->execute([
+                    $heiId,
+                    $acadYear,
+                    $term,
+                    $program,
+                    $programMajor,
+                    $yearLevel,
+                    $sex,
+                    $totalCount,
+                    $udd
+                ]);
+            }
+            $insertId = $ok ? (int)$conn->lastInsertId() : false;
+            $conn->commit();
+            return $insertId;
+        }catch(PDOException $e){
+            if ($conn->inTransaction()) $conn->rollBack();
+            error_log('createEnrollmentRow error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Insert multiple enrollment_data rows in one transaction and attach a single update_history id.
+     * $rows: array of associative arrays with keys: acad_year, term, program, program_major, year_level, sex, total_count
+     * Returns number of inserted rows on success, or false on failure.
+     */
+    function createEnrollmentRowsBatch($heiId, $rows, $ticketId = null){
+        if (empty($rows) || !is_array($rows)) return 0;
+        $conn = $this->opencon();
+        try{
+            $conn->beginTransaction();
+            // one update history for the whole batch
+            $ustmt = $conn->prepare("INSERT INTO update_history (updated_at) VALUES (NOW())");
+            $ustmt->execute();
+            $udd = (int)$conn->lastInsertId();
+
+            // choose SQL depending on whether we should store ticket_ID
+            if ($ticketId !== null) {
+                $sql = "INSERT INTO enrollment_data (hei_ID, enr_acad_year, enr_term, enr_program, enr_program_major, enr_year_level, enr_sex, enr_total_count, enr_udd_ID, ticket_ID) VALUES (?,?,?,?,?,?,?,?,?,?)";
+            } else {
+                $sql = "INSERT INTO enrollment_data (hei_ID, enr_acad_year, enr_term, enr_program, enr_program_major, enr_year_level, enr_sex, enr_total_count, enr_udd_ID) VALUES (?,?,?,?,?,?,?,?,?)";
+            }
+            $ist = $conn->prepare($sql);
+            $inserted = 0;
+            foreach ($rows as $r){
+                if ($ticketId !== null) {
+                    $params = [
+                        $heiId,
+                        $r['acad_year'] ?? null,
+                        $r['term'] ?? null,
+                        $r['program'] ?? null,
+                        $r['program_major'] ?? null,
+                        $r['year_level'] ?? null,
+                        $r['sex'] ?? null,
+                        $r['total_count'] ?? null,
+                        $udd,
+                        $ticketId
+                    ];
+                } else {
+                    $params = [
+                        $heiId,
+                        $r['acad_year'] ?? null,
+                        $r['term'] ?? null,
+                        $r['program'] ?? null,
+                        $r['program_major'] ?? null,
+                        $r['year_level'] ?? null,
+                        $r['sex'] ?? null,
+                        $r['total_count'] ?? null,
+                        $udd
+                    ];
+                }
+                $ok = $ist->execute($params);
+                if ($ok) $inserted++;
+            }
+            $conn->commit();
+            return $inserted;
+        }catch(PDOException $e){
+            if ($conn->inTransaction()) $conn->rollBack();
+            error_log('createEnrollmentRowsBatch error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
     // --- Ticket list for HEI ---
     /**
      * Fetch tickets for a specific HEI with optional filters and pagination.
