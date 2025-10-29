@@ -21,33 +21,75 @@ if (isset($_POST['create_ticket'])) {
     $priority = $_POST['priority'];
     $dueDate = $_POST['due'];
     $description = $_POST['desc']; 
+  // Validate templates selection: require at least one active template attached
+  $templateIds = isset($_POST['template_ids']) && is_array($_POST['template_ids']) ? array_values(array_map('intval', $_POST['template_ids'])) : [];
 
-    // Insert ticket into database
-    $con->createTicket($heiId, $chedUserID, $title, $category, $priority, $dueDate, $description);
-
-    // Check if insertion was successful
-    if ($con) {
-        $sweetAlertConfig = "
-        <script>
-        Swal.fire({
+  if (empty($templateIds)) {
+    // client didn't attach templates - show error
+    $sweetAlertConfig = "
+    <script>
+    Swal.fire({
+      icon: 'error',
+      title: 'No Template Selected',
+      text: 'Please attach at least one active template to the ticket before creating it.'
+    });
+    </script>";
+  } else {
+    // Verify templates are active and match category
+    $allowed = $con->getTemplates(['status' => 'active', 'category' => $category]);
+    $allowedIds = array_map(function($r){ return (int)$r['template_ID']; }, $allowed ?: []);
+    $diff = array_values(array_diff($templateIds, $allowedIds));
+    if (!empty($diff)) {
+      $sweetAlertConfig = "
+      <script>
+      Swal.fire({
+        icon: 'error',
+        title: 'Invalid Template Selection',
+        text: 'One or more selected templates are invalid for the chosen category. Please select active templates that match the category.'
+      });
+      </script>";
+    } else {
+      // Insert ticket into database
+      $ticketID = $con->createTicket($heiId, $chedUserID, $title, $category, $priority, $dueDate, $description);
+      if ($ticketID) {
+        // attach templates
+        $ok = $con->setTemplatesForTicket($ticketID, $templateIds, $chedUserID);
+        if ($ok) {
+          $sweetAlertConfig = "
+          <script>
+          Swal.fire({
             icon: 'success',
             title: 'Ticket Created',
             text: 'The ticket has been successfully created.',
             confirmButtonText: 'OK'
-        }).then(() => {
+          }).then(() => {
             window.location.href = './view-tickets.php';
-        });
-        </script>";
-    } else {
+          });
+          </script>";
+        } else {
+          $sweetAlertConfig = "
+          <script>
+          Swal.fire({
+            icon: 'error',
+            title: 'Attachment Failed',
+            text: 'Ticket created but failed to attach templates. Please edit the ticket to attach templates.'
+          }).then(() => {
+            window.location.href = './view-tickets.php';
+          });
+          </script>";
+        }
+      } else {
         $sweetAlertConfig = "
         <script>
         Swal.fire({
-            icon: 'error',
-            title: 'Creation Failed',
-            text: 'There was an error creating the ticket. Please try again.'
+          icon: 'error',
+          title: 'Creation Failed',
+          text: 'There was an error creating the ticket. Please try again.'
         });
         </script>";
+      }
     }
+  }
     
 
 }
@@ -69,6 +111,10 @@ if (isset($_POST['create_ticket'])) {
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
     <main class="flex-1 p-6 overflow-y-auto">
       <div class="max-w-3xl mx-auto">
+        <?php
+          // fetch active templates for rendering the selector
+          $activeTemplates = $con->getTemplates(['status' => 'active']);
+        ?>
         <form  method="post" action="" id="ticketForm" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
           <div class="px-5 pt-5 pb-3 border-b">
             <h2 class="font-semibold">New Ticket</h2>
@@ -122,6 +168,26 @@ if (isset($_POST['create_ticket'])) {
               <label for="desc" class="block text-sm font-medium mb-1">Description</label>
               <textarea name="desc" id="desc" rows="4" class="w-full px-3 py-2 rounded border" placeholder="Describe the task, template to use, and any notes..."></textarea>
             </div>
+
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium mb-1">Attach Template(s) <span class="text-xs text-slate-400">(at least 1 required)</span></label>
+              <div id="templateList" class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-auto border rounded p-2">
+                <?php if (empty($activeTemplates)): ?>
+                  <div class="text-sm text-slate-500">No active templates available. Please ask CHED admin to upload templates.</div>
+                <?php else: ?>
+                  <?php foreach ($activeTemplates as $t): ?>
+                    <label class="inline-flex items-center gap-2 px-2 py-1 border rounded" data-category="<?php echo htmlspecialchars($t['template_category']); ?>">
+                      <input type="checkbox" name="template_ids[]" value="<?php echo (int)$t['template_ID']; ?>" />
+                      <div>
+                        <div class="text-sm font-medium"><?php echo htmlspecialchars($t['template_name']); ?></div>
+                        <div class="text-xs text-slate-500">v<?php echo htmlspecialchars($t['template_version'] ?? ''); ?> • <?php echo htmlspecialchars($t['template_category']); ?></div>
+                      </div>
+                    </label>
+                  <?php endforeach; ?>
+                <?php endif; ?>
+              </div>
+              <p class="text-xs text-slate-400 mt-1">Templates are filtered by category when you change the Category field.</p>
+            </div>
           </div>
           <div class="px-5 py-4 border-t flex items-center justify-between bg-slate-50">
             <a href="./view-tickets.php" class="text-sm text-slate-600 hover:underline">Cancel</a>
@@ -134,6 +200,23 @@ if (isset($_POST['create_ticket'])) {
       </div>
     </main>
   </div>
+
+  <script>
+    // filter templates by selected category
+    (function(){
+      function filter(){
+        var cat = document.getElementById('category').value;
+        var nodes = document.querySelectorAll('#templateList [data-category]');
+        nodes.forEach(function(n){
+          if (!cat) { n.style.display = ''; return; }
+          if (n.getAttribute('data-category') === cat) n.style.display = '';
+          else n.style.display = 'none';
+        });
+      }
+      var sel = document.getElementById('category');
+      if (sel){ sel.addEventListener('change', filter); window.addEventListener('load', filter); }
+    })();
+  </script>
 
   <?php echo $sweetAlertConfig; ?>
 

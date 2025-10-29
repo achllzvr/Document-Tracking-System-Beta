@@ -482,6 +482,66 @@ class database{
         }
     }
 
+    /**
+     * Fetch templates attached to a ticket
+     * Returns array of template rows
+     */
+    function getTemplatesForTicket($ticketId){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT t.* FROM ticket_templates tt JOIN templates t ON tt.template_ID = t.template_ID WHERE tt.ticket_ID = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$ticketId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }catch(PDOException $e){
+            error_log('getTemplatesForTicket error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Replace the templates attached to a ticket (delete existing and insert provided list)
+     * $templateIds should be an array of numeric template_IDs.
+     * Returns true on success.
+     */
+    function setTemplatesForTicket($ticketId, $templateIds = [], $updatedBy = null){
+        $conn = $this->opencon();
+        try{
+            $conn->beginTransaction();
+
+            // delete existing
+            $dstmt = $conn->prepare("DELETE FROM ticket_templates WHERE ticket_ID = ?");
+            $dstmt->execute([$ticketId]);
+
+            // insert new ones
+            if (!empty($templateIds)){
+                $istmt = $conn->prepare("INSERT INTO ticket_templates (ticket_ID, template_ID) VALUES (?, ?)");
+                foreach ($templateIds as $tid){
+                    $istmt->execute([$ticketId, (int)$tid]);
+                }
+            }
+
+            // record update history and attach to tickets.ticket_udd_ID if present
+            $ustmt = $conn->prepare("INSERT INTO update_history (updated_at) VALUES (NOW())");
+            $ustmt->execute();
+            $udd = (int)$conn->lastInsertId();
+
+            // if tickets has ticket_udd_ID column, set it
+            $colCheck = $conn->query("SHOW COLUMNS FROM tickets LIKE 'ticket_udd_ID'")->fetchAll(PDO::FETCH_ASSOC);
+            if ($colCheck) {
+                $tstmt = $conn->prepare("UPDATE tickets SET ticket_udd_ID = ? WHERE ticket_ID = ?");
+                $tstmt->execute([$udd, $ticketId]);
+            }
+
+            $conn->commit();
+            return true;
+        }catch(PDOException $e){
+            if ($conn->inTransaction()) $conn->rollBack();
+            error_log('setTemplatesForTicket error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
     // =============================================================
     // [HEI] Account Functions (Login, User Management)
     // Pages: HEI Login, User Management

@@ -35,11 +35,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Location: ticket-details.php?ticket_id=' . $ticketId);
     exit;
   }
+
+  // update attached templates (CHED)
+  if (isset($_POST['update_templates'])) {
+    $templateIds = isset($_POST['template_ids']) && is_array($_POST['template_ids']) ? array_values(array_map('intval', $_POST['template_ids'])) : [];
+    // validate templates are active
+    $allActive = $db->getTemplates(['status' => 'active']);
+    $allowed = array_map(function($r){ return (int)$r['template_ID']; }, $allActive ?: []);
+    $diff = array_values(array_diff($templateIds, $allowed));
+    if (!empty($diff)) {
+      // invalid selection - ignore and redirect back
+      header('Location: ticket-details.php?ticket_id=' . $ticketId);
+      exit;
+    }
+
+    // require at least one attached active template
+    if (empty($templateIds)) {
+      // don't accept empty list; redirect back (front-end will enforce too)
+      header('Location: ticket-details.php?ticket_id=' . $ticketId);
+      exit;
+    }
+
+    $db->setTemplatesForTicket($ticketId, $templateIds, $_SESSION['chedID'] ?? null);
+    header('Location: ticket-details.php?ticket_id=' . $ticketId);
+    exit;
+  }
 }
 
 // Fetch ticket and comments
 $ticket = $ticketId ? $db->getTicketById($ticketId) : null;
 $comments = $ticketId ? $db->getCommentsForTicket($ticketId) : [];
+// fetch attached templates and active templates for editing
+$attachedTemplates = $ticketId ? $db->getTemplatesForTicket($ticketId) : [];
+$activeTemplates = $db->getTemplates(['status' => 'active']);
 
 ?>
 <!doctype html>
@@ -100,14 +128,62 @@ $comments = $ticketId ? $db->getCommentsForTicket($ticketId) : [];
               <p><span class="text-slate-500 text-sm">Description:</span>
               <p class="text-sm"><?php echo nl2br(htmlspecialchars($ticket['ticket_description'] ?? '')); ?></p>
             </div>
-            <div class="px-5 pb-5 flex items-center gap-3">
-              <a class="inline-flex items-center gap-2 px-3 py-2 rounded border hover:bg-slate-50" href="/PRISM/tickets/download-template.php?ticket_id=<?php echo (int)$ticketId; ?>" id="downloadBtn"><i data-lucide="download" class="h-4 w-4"></i> Download Template</a>
-              <a class="inline-flex items-center gap-2 px-3 py-2 rounded bg-blue-600 text-white" href="/PRISM/tickets/upload.php?ticket_id=<?php echo (int)$ticketId; ?>" id="uploadBtn"><i data-lucide="upload" class="h-4 w-4"></i> Upload Completed</a>
+            <div class="px-5 pb-5">
+              <div class="flex items-center gap-3 mb-3">
+                <a class="inline-flex items-center gap-2 px-3 py-2 rounded border hover:bg-slate-50" href="/PRISM/tickets/download-template.php?ticket_id=<?php echo (int)$ticketId; ?>" id="downloadBtn"><i data-lucide="download" class="h-4 w-4"></i> Download Template</a>
+                <a class="inline-flex items-center gap-2 px-3 py-2 rounded bg-blue-600 text-white" href="/PRISM/tickets/upload.php?ticket_id=<?php echo (int)$ticketId; ?>" id="uploadBtn"><i data-lucide="upload" class="h-4 w-4"></i> Upload Completed</a>
+                <button id="editAttachmentsBtn" type="button" class="inline-flex items-center gap-2 px-3 py-2 rounded border hover:bg-slate-50"><i data-lucide="edit-2" class="h-4 w-4"></i> Edit Attachments</button>
+              </div>
+
+              <div class="text-sm">
+                <div class="text-slate-500 text-xs">Attached Templates</div>
+                <?php if (empty($attachedTemplates)): ?>
+                  <div class="mt-2 text-sm text-amber-600">No templates attached.</div>
+                <?php else: ?>
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    <?php foreach ($attachedTemplates as $at): ?>
+                      <span class="prism-badge prism-badge-status-open"><?php echo htmlspecialchars($at['template_name']); ?> <?php echo $at['template_version'] ? ('v'.htmlspecialchars($at['template_version'])) : ''; ?></span>
+                    <?php endforeach; ?>
+                  </div>
+                <?php endif; ?>
+              </div>
             </div>
           <?php endif; ?>
         </section>
 
         <section class="grid md:grid-cols-1 gap-6">
+          <!-- Edit Attachments Modal -->
+          <div id="attachmentsModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+            <div class="bg-white rounded-xl w-full max-w-2xl p-4">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="font-semibold">Edit Attached Templates</h3>
+                <button id="closeAttachments" class="text-slate-500">Close</button>
+              </div>
+              <form method="post">
+                <input type="hidden" name="update_templates" value="1" />
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-64 overflow-auto border rounded p-2">
+                  <?php if (empty($activeTemplates)): ?>
+                    <div class="text-sm text-slate-500">No active templates available.</div>
+                  <?php else: ?>
+                    <?php foreach ($activeTemplates as $t): ?>
+                      <?php $checked = in_array((int)$t['template_ID'], array_map(function($r){ return (int)$r['template_ID']; }, $attachedTemplates ?: [])); ?>
+                      <label class="inline-flex items-center gap-2 px-2 py-1 border rounded">
+                        <input type="checkbox" name="template_ids[]" value="<?php echo (int)$t['template_ID']; ?>" <?php echo $checked ? 'checked' : ''; ?> />
+                        <div>
+                          <div class="text-sm font-medium"><?php echo htmlspecialchars($t['template_name']); ?></div>
+                          <div class="text-xs text-slate-500">v<?php echo htmlspecialchars($t['template_version'] ?? ''); ?> • <?php echo htmlspecialchars($t['template_category']); ?></div>
+                        </div>
+                      </label>
+                    <?php endforeach; ?>
+                  <?php endif; ?>
+                </div>
+                <div class="mt-4 flex justify-end gap-2">
+                  <button type="button" id="cancelAttachments" class="px-3 py-2 rounded border">Cancel</button>
+                  <button type="submit" class="px-3 py-2 rounded bg-emerald-600 text-white">Save</button>
+                </div>
+              </form>
+            </div>
+          </div>
           <div id="comments" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             <div class="px-5 pt-5 pb-3 border-b">
               <h3 class="font-semibold">Comments</h3>
@@ -143,5 +219,17 @@ $comments = $ticketId ? $db->getCommentsForTicket($ticketId) : [];
     </main>
 
     <script>if (window.lucide) lucide.createIcons();</script>
+    <script>
+      (function(){
+        var modal = document.getElementById('attachmentsModal');
+        var openBtn = document.getElementById('editAttachmentsBtn');
+        var closeBtn = document.getElementById('closeAttachments');
+        var cancelBtn = document.getElementById('cancelAttachments');
+        if (openBtn && modal){
+          openBtn.addEventListener('click', function(){ modal.classList.remove('hidden'); modal.classList.add('flex'); });
+        }
+        [closeBtn, cancelBtn].forEach(function(b){ if (b) b.addEventListener('click', function(){ modal.classList.add('hidden'); modal.classList.remove('flex'); }); });
+      })();
+    </script>
 </body>
 </html>

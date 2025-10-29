@@ -189,6 +189,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     header('Location: manage-data-templates.php'); exit;
   }
+
+  // Change template category (requires CHED password confirmation)
+  if (isset($_POST['change_template_category'])) {
+    $tid = (int)($_POST['template_id'] ?? 0);
+    $newCat = trim($_POST['template_category'] ?? '');
+    $pwd = $_POST['confirm_password'] ?? '';
+    $chedUserId = $_SESSION['chedID'] ?? null;
+    if ($tid && $chedUserId && $newCat !== '') {
+      // verify password
+      $stmt = $con->opencon()->prepare("SELECT ched_password FROM ched_users WHERE ched_ID = ? LIMIT 1");
+      $stmt->execute([$chedUserId]);
+      $row = $stmt->fetch(PDO::FETCH_ASSOC);
+      if ($row && password_verify($pwd, $row['ched_password'])) {
+        // perform update and record update_history
+        $udd = $con->recordUpdate();
+        $conn = $con->opencon();
+        $uStmt = $conn->prepare("UPDATE templates SET template_category = ?, template_udd_ID = ? WHERE template_ID = ?");
+        $ok = $uStmt->execute([$newCat, $udd ?: null, $tid]);
+        $_SESSION['flash'] = $ok ? ['icon'=>'success','title'=>'Category updated','text'=>'Template category updated.'] : ['icon'=>'error','title'=>'Update failed','text'=>'Could not update template category.'];
+      } else {
+        $_SESSION['flash'] = ['icon'=>'error','title'=>'Invalid password','text'=>'The provided CHED password is incorrect.'];
+      }
+    }
+    header('Location: manage-data-templates.php'); exit;
+  }
 }
 
 ?>
@@ -277,6 +302,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               </div>
             </div>
 
+                <!-- Change category confirmation modal -->
+                <div id="changeCategoryModal" class="fixed inset-0 z-50 hidden items-center justify-center px-4">
+                  <div class="absolute inset-0 bg-black/40"></div>
+                  <div class="relative max-w-md w-full ched-card overflow-hidden">
+                    <div class="p-4 border-b flex items-center justify-between">
+                      <h3 class="ched-font-semibold">Confirm Category Change</h3>
+                      <button id="closeChangeCategory" class="text-slate-600">✕</button>
+                    </div>
+                    <div class="p-5">
+                      <p class="text-sm text-slate-500">Changing the template category requires CHED password confirmation. Enter your CHED password to confirm.</p>
+                      <form id="changeCategoryForm" method="post" class="mt-4">
+                        <input type="hidden" name="template_id" id="change_template_id" value="" />
+                        <div>
+                          <label class="block text-xs">New Category</label>
+                          <input id="change_template_category_display" type="text" disabled class="w-full px-2 py-1 rounded border bg-slate-100" />
+                          <input type="hidden" name="template_category" id="change_template_category" value="" />
+                        </div>
+                        <div class="mt-3">
+                          <label class="block text-xs">CHED password</label>
+                          <input id="change_confirm_password" type="password" name="confirm_password" required class="w-full px-2 py-1 rounded border" />
+                        </div>
+                        <div class="mt-3 flex justify-end gap-2">
+                          <button type="button" id="cancelChangeCategory" class="ched-btn">Cancel</button>
+                          <button type="submit" name="change_template_category" class="ched-btn ched-btn-primary">Confirm</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+
               <div class="ched-overflow-x-auto">
               <table class="w-full text-left">
                 <thead class="ched-text-sm" style="color: #64748b; background: #f8fafc;">
@@ -315,13 +370,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $statusClass = 'prism-badge-status-default';
                         if ($statusLower === 'active') $statusClass = 'prism-badge-status-open';
                         elseif ($statusLower === 'deprecated') $statusClass = 'prism-badge-status-closed';
+                        // build category select (dropdown) — only field editable inline
+                        $categories = ['Enrollment','Faculty','Graduates'];
+                        $opts = '';
+                        foreach ($categories as $c) {
+                          $sel = ($c === ($t['template_category'] ?? '')) ? 'selected' : '';
+                          $esc = htmlspecialchars($c);
+                          $opts .= "<option value=\"{$esc}\" {$sel}>{$esc}</option>";
+                        }
+                        $categorySelect = "<select class='category-select px-2 py-1 rounded border' data-id='{$tid}'>" . $opts . "</select>";
+
                         echo "<tr class='hover:bg-slate-50'>
                           <td class='px-6 py-4 align-middle'>
                             <div class='ched-font-semibold ched-text-slate-800'>{$tname}</div>
                             <div class='ched-text-xs' style='margin-top:0.25rem;color:#94a3b8;'>ID: {$tid}</div>
                           </td>
                           <td class='px-6 py-4 align-middle'>
-                            <div class='inline-flex ched-items-center px-3 py-1 rounded-full bg-slate-50 ched-text-sm ched-text-slate-800 border'>{$tcat}</div>
+                            {$categorySelect}
                           </td>
                           <td class='px-6 py-4 align-middle'>
                             <div class='ched-text-sm ched-text-slate-800'>{$tver}</div>
@@ -460,6 +525,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       });
     });
 
+      // If server indicated we're editing an existing template, prefill and open modal
+      <?php if (!empty($editing) && !empty($editData)): ?>
+        (function(){
+          var data = <?php echo json_encode($editData, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); ?>;
+          // populate fields
+          try{
+            document.getElementById('edit_id').value = data.template_ID || data.id || '';
+            document.getElementById('template_name').value = data.template_name || data.name || '';
+            // if category value exists in select, set it; else append option
+            var sel = document.getElementById('template_category');
+            if (sel) {
+              var found = false;
+              for (var i=0;i<sel.options.length;i++){ if (sel.options[i].value === (data.template_category || '')) { found=true; break; } }
+              if (!found && (data.template_category || '') !== '') {
+                var opt = document.createElement('option'); opt.value = data.template_category; opt.text = data.template_category; sel.add(opt);
+              }
+              sel.value = data.template_category || '';
+            }
+            document.getElementById('template_version').value = data.template_version || '';
+            document.getElementById('templateModalTitle').innerText = 'Edit Template';
+            openModal(templateModal);
+          }catch(e){ console.error('prefill edit modal', e); }
+        })();
+      <?php endif; ?>
+
   // Close buttons
   document.getElementById('closeTemplateModal').addEventListener('click', () => closeModal(templateModal));
   document.getElementById('cancelTemplate').addEventListener('click', () => closeModal(templateModal));
@@ -492,6 +582,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     document.getElementById('cancelReactivate').addEventListener('click', () => closeModal(reactivateModal));
 
     // Server-side edit auto-open removed (Replace removed from UI)
+
+    // Category change flow: intercept select change, open password modal to confirm
+    const changeCategoryModal = document.getElementById('changeCategoryModal');
+    const changeForm = document.getElementById('changeCategoryForm');
+    const changeTemplateId = document.getElementById('change_template_id');
+    const changeTemplateCategory = document.getElementById('change_template_category');
+    const changeTemplateCategoryDisplay = document.getElementById('change_template_category_display');
+    const closeChangeCategory = document.getElementById('closeChangeCategory');
+    const cancelChangeCategory = document.getElementById('cancelChangeCategory');
+
+    document.querySelectorAll('.category-select').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        const id = sel.getAttribute('data-id');
+        const newCat = sel.value;
+        // populate modal
+        changeTemplateId.value = id;
+        changeTemplateCategory.value = newCat;
+        changeTemplateCategoryDisplay.value = newCat;
+        document.getElementById('change_confirm_password').value = '';
+        openModal(changeCategoryModal);
+      });
+    });
+
+    if (closeChangeCategory) closeChangeCategory.addEventListener('click', () => closeModal(changeCategoryModal));
+    if (cancelChangeCategory) cancelChangeCategory.addEventListener('click', () => closeModal(changeCategoryModal));
   </script>
 </body>
 </html>
