@@ -31,6 +31,18 @@ $parsed = isset($payload['parsed_rows']) ? $payload['parsed_rows'] : [];
 $errors = isset($payload['errors']) ? $payload['errors'] : [];
 $ticketId = isset($payload['ticket_id']) ? $payload['ticket_id'] : '';
 
+// Pagination
+$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 25;
+if (!in_array($perPage, [25, 50, 100])) {
+    $perPage = 25;
+}
+$totalRows = count($parsed);
+$totalPages = $totalRows > 0 ? ceil($totalRows / $perPage) : 1;
+$page = min($page, $totalPages);
+$offset = ($page - 1) * $perPage;
+$parsedPaginated = array_slice($parsed, $offset, $perPage);
+
 ?><!doctype html>
 <html lang="en">
 <head>
@@ -142,13 +154,30 @@ $ticketId = isset($payload['ticket_id']) ? $payload['ticket_id'] : '';
 
                 <!-- Parsed Data Table -->
                 <section class="hei-card">
-                    <header class="hei-card-header flex items-center justify-between">
-                        <div>
-                            <h2 class="hei-font-semibold text-slate-800">Parsed Data Preview</h2>
-                            <p class="hei-text-sm">Review all <?php echo count($parsed); ?> records before saving</p>
+                    <header class="hei-card-header">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <h2 class="hei-font-semibold text-slate-800">Parsed Data Preview</h2>
+                                <p class="hei-text-sm">Review all <?php echo number_format($totalRows); ?> records before saving</p>
+                            </div>
+                            <div class="text-sm px-3 py-1 bg-slate-100 rounded-full font-medium text-slate-700">
+                                <?php echo number_format($totalRows); ?> Records
+                            </div>
                         </div>
-                        <div class="text-sm px-3 py-1 bg-slate-100 rounded-full font-medium text-slate-700">
-                            <?php echo count($parsed); ?> Records
+                        <div class="flex items-center gap-4">
+                            <?php if ($totalRows > 0): ?>
+                            <div class="text-sm text-slate-500">
+                                Showing <?php echo number_format($offset + 1); ?>-<?php echo number_format(min($offset + $perPage, $totalRows)); ?>
+                            </div>
+                            <?php endif; ?>
+                            <div class="flex items-center gap-2">
+                                <label class="text-sm text-slate-600">Per page:</label>
+                                <select onchange="window.location.href='?token=<?php echo urlencode($token); ?>&page=1&per_page=' + this.value" class="px-2 py-1 border rounded text-sm">
+                                    <option value="25" <?php echo $perPage === 25 ? 'selected' : ''; ?>>25</option>
+                                    <option value="50" <?php echo $perPage === 50 ? 'selected' : ''; ?>>50</option>
+                                    <option value="100" <?php echo $perPage === 100 ? 'selected' : ''; ?>>100</option>
+                                </select>
+                            </div>
                         </div>
                     </header>
                     <div class="hei-overflow-x-auto">
@@ -166,9 +195,21 @@ $ticketId = isset($payload['ticket_id']) ? $payload['ticket_id'] : '';
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
-                            <?php foreach($parsed as $i => $r): ?>
+                            <?php if (empty($parsedPaginated)): ?>
+                                <tr>
+                                    <td colspan="8" class="px-4 py-8 text-center text-slate-500">
+                                        <div class="flex flex-col items-center gap-2">
+                                            <i data-lucide="inbox" class="h-12 w-12 text-slate-300"></i>
+                                            <div class="font-medium">No records on this page</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php else: ?>
+                            <?php foreach($parsedPaginated as $i => $r): 
+                                $rowNum = $offset + $i + 1;
+                            ?>
                                 <tr class="hover:bg-slate-50 transition">
-                                    <td class="px-4 py-3 text-center text-slate-500 font-medium"><?php echo $i+1; ?></td>
+                                    <td class="px-4 py-3 text-center text-slate-500 font-medium"><?php echo $rowNum; ?></td>
                                     <td class="px-4 py-3 text-slate-700"><?php echo htmlspecialchars($r['enr_acad_year'] ?? $r['acad_year'] ?? '—'); ?></td>
                                     <td class="px-4 py-3 text-slate-700"><?php echo htmlspecialchars($r['enr_term'] ?? $r['term'] ?? '—'); ?></td>
                                     <td class="px-4 py-3 text-slate-800 font-medium"><?php echo htmlspecialchars($r['enr_program'] ?? $r['program'] ?? '—'); ?></td>
@@ -192,9 +233,41 @@ $ticketId = isset($payload['ticket_id']) ? $payload['ticket_id'] : '';
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
+                            <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Pagination Controls -->
+                    <?php if ($totalPages > 1): ?>
+                    <div class="p-4 border-t flex items-center justify-between">
+                        <div class="text-sm text-slate-600">
+                            Page <?php echo $page; ?> of <?php echo $totalPages; ?>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <?php if ($page > 1): ?>
+                                <a href="?token=<?php echo urlencode($token); ?>&page=1&per_page=<?php echo $perPage; ?>" class="px-3 py-1 rounded border hover:bg-slate-50">First</a>
+                                <a href="?token=<?php echo urlencode($token); ?>&page=<?php echo $page - 1; ?>&per_page=<?php echo $perPage; ?>" class="px-3 py-1 rounded border hover:bg-slate-50">Previous</a>
+                            <?php endif; ?>
+                            
+                            <?php
+                                $startPage = max(1, $page - 2);
+                                $endPage = min($totalPages, $page + 2);
+                                for ($i = $startPage; $i <= $endPage; $i++):
+                            ?>
+                                <a href="?token=<?php echo urlencode($token); ?>&page=<?php echo $i; ?>&per_page=<?php echo $perPage; ?>" 
+                                   class="px-3 py-1 rounded border <?php echo $i === $page ? 'bg-emerald-600 text-white' : 'hover:bg-slate-50'; ?>">
+                                    <?php echo $i; ?>
+                                </a>
+                            <?php endfor; ?>
+                            
+                            <?php if ($page < $totalPages): ?>
+                                <a href="?token=<?php echo urlencode($token); ?>&page=<?php echo $page + 1; ?>&per_page=<?php echo $perPage; ?>" class="px-3 py-1 rounded border hover:bg-slate-50">Next</a>
+                                <a href="?token=<?php echo urlencode($token); ?>&page=<?php echo $totalPages; ?>&per_page=<?php echo $perPage; ?>" class="px-3 py-1 rounded border hover:bg-slate-50">Last</a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </section>
 
                 <!-- Action Buttons -->

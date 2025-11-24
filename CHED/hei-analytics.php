@@ -1,10 +1,58 @@
 <?php
-
+  
 // import dev error output
 require_once __DIR__ . '/../includes/dev_logs.php';
 
 // CHED protector
 require_once __DIR__ . '/../includes/ched_protect.php';
+
+// Database helper
+require_once __DIR__ . '/../classes/database.php';
+$db = new database();
+
+// Get filter parameters
+$selectedYear = $_GET['year'] ?? '';
+$selectedTerm = $_GET['term'] ?? '';
+$selectedProgram = $_GET['program'] ?? '';
+$selectedRegion = $_GET['region'] ?? '';
+$selectedHEI = $_GET['hei'] ?? '';
+
+// Build filters array
+$filters = [];
+if ($selectedYear !== '' && $selectedYear !== 'all') {
+    $filters['acad_year'] = $selectedYear;
+}
+if ($selectedTerm !== '' && $selectedTerm !== 'all') {
+    $filters['term'] = $selectedTerm;
+}
+if ($selectedProgram !== '' && $selectedProgram !== 'all') {
+    $filters['program'] = $selectedProgram;
+}
+if ($selectedRegion !== '' && $selectedRegion !== 'all') {
+    $filters['region'] = $selectedRegion;
+}
+if ($selectedHEI !== '' && $selectedHEI !== 'all') {
+    $filters['hei_id'] = $selectedHEI;
+}
+
+// Fetch available filter options
+$availableYears = $db->getCHEDAvailableAcademicYears();
+$availableTerms = $db->getCHEDAvailableTerms();
+$availablePrograms = $db->getCHEDAvailablePrograms();
+$availableRegions = $db->fetchAllRegions();
+$availableHEIs = $db->getHEIs([]); // Get all HEIs for dropdown
+
+// Fetch summary statistics
+$summary = $db->getCHEDEnrollmentSummary($filters);
+$pendingTickets = $db->getCHEDTotalPendingTicketsCount();
+
+// Fetch analytics data for charts
+$trendData = $db->getCHEDEnrollmentTrend($filters);
+$regionData = $db->getCHEDEnrollmentByRegion($filters);
+$topHEIs = $db->getCHEDTopHEIsByEnrollment($filters, 10);
+$programData = $db->getCHEDEnrollmentByProgram($filters, 10);
+$sexData = $db->getCHEDEnrollmentBySex($filters);
+$yearLevelData = $db->getCHEDEnrollmentByYearLevel($filters);
 
 ?>
 <!doctype html>
@@ -12,226 +60,541 @@ require_once __DIR__ . '/../includes/ched_protect.php';
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>HEI Analytics — CHED</title>
+  <title>System Analytics — PRISM</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="/PRISM/assets/prism-global.css">
+  <link rel="stylesheet" href="/PRISM/assets/ched-global.css">
 </head>
-<body class="min-h-screen flex flex-col bg-gray-50 text-slate-800">
-  <?php $showHEI = false; require_once __DIR__ . '/../includes/header.php'; ?>
+<body class="ched-min-h-screen">
+  <?php require_once __DIR__ . '/../includes/header.php'; ?>
 
-  <div class="flex-1 flex">
+  <div class="ched-flex-1">
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
 
-    <main class="flex-1 p-6 overflow-y-auto">
-      <div class="max-w-7xl mx-auto space-y-6">
-        <section class="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h2 class="font-semibold">Analytics</h2>
-              <p class="text-sm text-slate-500">Interactive analytics across HEIs (mock data)</p>
-            </div>
-            <div class="flex items-center gap-3">
-              <label class="text-xs">Region</label>
-              <select id="fRegion" class="px-2 py-1 rounded border"></select>
-              <label class="text-xs">HEI</label>
-              <select id="fHei" class="px-2 py-1 rounded border"></select>
-              <label class="text-xs">Academic Year</label>
-              <select id="fAy" class="px-2 py-1 rounded border"></select>
-            </div>
-          </div>
-
-          <div class="grid md:grid-cols-4 gap-4 mb-6">
-            <div class="p-4 bg-white border rounded-lg shadow-sm">
-              <p class="text-xs text-slate-500">Total Enrollment</p>
-              <p id="kEnrollment" class="text-2xl font-semibold">—</p>
-            </div>
-            <div class="p-4 bg-white border rounded-lg shadow-sm">
-              <p class="text-xs text-slate-500">Total Faculty</p>
-              <p id="kFaculty" class="text-2xl font-semibold">—</p>
-            </div>
-            <div class="p-4 bg-white border rounded-lg shadow-sm">
-              <p class="text-xs text-slate-500">Total Graduates</p>
-              <p id="kGraduates" class="text-2xl font-semibold">—</p>
-            </div>
-            <div class="p-4 bg-white border rounded-lg shadow-sm">
-              <p class="text-xs text-slate-500">Open Tickets</p>
-              <p id="kTickets" class="text-2xl font-semibold">—</p>
-            </div>
-          </div>
-
-          <div class="grid md:grid-cols-2 gap-6">
-            <div class="bg-white border rounded-lg p-4">
-              <h3 class="font-medium mb-2">Enrollment Trend (AY)</h3>
-              <canvas id="enrollTrend" aria-label="Enrollment trend chart" role="img"></canvas>
-            </div>
-            <div class="bg-white border rounded-lg p-4">
-              <h3 class="font-medium mb-2">Faculty by Discipline</h3>
-              <canvas id="facultyBar" aria-label="Faculty by discipline bar chart" role="img"></canvas>
-            </div>
-            <div class="bg-white border rounded-lg p-4 md:col-span-2">
-              <h3 class="font-medium mb-2">Graduates by Program (Top)</h3>
-              <canvas id="graduatesBar" aria-label="Graduates by program bar chart" role="img"></canvas>
-            </div>
-          </div>
-
-          <div class="mt-6">
-            <h3 class="font-semibold mb-2">Aggregated Metrics</h3>
-            <div class="overflow-x-auto">
-              <table class="min-w-full text-sm border">
-                <thead class="bg-slate-50"><tr><th class="p-2">Metric</th><th class="p-2">Value</th></tr></thead>
-                <tbody id="aggTable"></tbody>
-              </table>
-            </div>
-            <div class="mt-3 flex gap-2">
-              <button id="exportCsv" class="px-3 py-2 rounded border">Export CSV</button>
-              <button id="exportXlsx" class="px-3 py-2 rounded bg-blue-600 text-white">Export XLSX</button>
+    <main class="ched-main">
+      <div class="ched-max-w-7xl ched-space-y-6">
+        
+        <!-- Page Header -->
+        <section class="ched-card">
+          <div class="p-6">
+            <div class="flex items-start justify-between">
+              <div>
+                <h1 class="text-2xl font-semibold text-slate-800 flex items-center gap-2">
+                  <i data-lucide="bar-chart-3" class="h-7 w-7 text-blue-600"></i>
+                  System-Wide Analytics
+                </h1>
+                <p class="text-sm text-slate-500 mt-1">View enrollment trends and distribution metrics across all institutions</p>
+              </div>
             </div>
           </div>
         </section>
+
+        <!-- Filters Section -->
+        <section class="ched-card">
+          <header class="ched-card-header">
+            <h2 class="ched-font-semibold text-slate-800">Filters</h2>
+            <p class="ched-text-sm">Filter data by academic year, region, and institution</p>
+          </header>
+          <div class="p-6">
+            <form method="get" class="grid md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <!-- Academic Year Filter -->
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-2">Academic Year</label>
+                <select name="year" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  <option value="all">All Years</option>
+                  <?php foreach ($availableYears as $year): ?>
+                    <option value="<?php echo htmlspecialchars($year); ?>" <?php echo ($selectedYear == $year) ? 'selected' : ''; ?>>
+                      <?php echo htmlspecialchars($year); ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+
+              <!-- Term Filter -->
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-2">Term</label>
+                <select name="term" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  <option value="all">All Terms</option>
+                  <?php foreach ($availableTerms as $term): ?>
+                    <option value="<?php echo htmlspecialchars($term); ?>" <?php echo ($selectedTerm == $term) ? 'selected' : ''; ?>>
+                      <?php echo htmlspecialchars($term); ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+
+              <!-- Program Filter -->
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-2">Program</label>
+                <select name="program" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  <option value="all">All Programs</option>
+                  <?php foreach ($availablePrograms as $program): ?>
+                    <option value="<?php echo htmlspecialchars($program); ?>" <?php echo ($selectedProgram == $program) ? 'selected' : ''; ?>>
+                      <?php echo htmlspecialchars($program); ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+
+              <!-- Region Filter -->
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-2">Region</label>
+                <select name="region" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  <option value="all">All Regions</option>
+                  <?php foreach ($availableRegions as $region): ?>
+                    <option value="<?php echo htmlspecialchars($region['region_ID']); ?>" <?php echo ($selectedRegion == $region['region_ID']) ? 'selected' : ''; ?>>
+                      <?php echo htmlspecialchars($region['region_number'] . ' - ' . $region['region_division']); ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+
+              <!-- HEI Filter -->
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-2">Institution</label>
+                <select name="hei" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  <option value="all">All Institutions</option>
+                  <?php foreach ($availableHEIs as $hei): ?>
+                    <option value="<?php echo htmlspecialchars($hei['id']); ?>" <?php echo ($selectedHEI == $hei['id']) ? 'selected' : ''; ?>>
+                      <?php echo htmlspecialchars($hei['name']); ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+
+              <!-- Apply Button -->
+              <div class="flex items-end">
+                <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                  <i data-lucide="filter" class="h-4 w-4"></i>
+                  Apply Filters
+                </button>
+              </div>
+            </form>
+            
+            <?php if (!empty($filters)): ?>
+            <div class="mt-4 flex items-center gap-2">
+              <span class="text-sm text-slate-600">Active filters:</span>
+              <div class="flex flex-wrap gap-2">
+                <?php if (!empty($filters['acad_year'])): ?>
+                  <span class="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                    Year: <?php echo htmlspecialchars($filters['acad_year']); ?>
+                  </span>
+                <?php endif; ?>
+                <?php if (!empty($filters['term'])): ?>
+                  <span class="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
+                    Term: <?php echo htmlspecialchars($filters['term']); ?>
+                  </span>
+                <?php endif; ?>
+                <?php if (!empty($filters['program'])): ?>
+                  <span class="inline-flex items-center gap-1 px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs font-medium">
+                    Program: <?php echo htmlspecialchars($filters['program']); ?>
+                  </span>
+                <?php endif; ?>
+                <?php if (!empty($filters['region'])): 
+                    $regionName = '';
+                    foreach ($availableRegions as $r) {
+                        if ($r['region_ID'] == $filters['region']) {
+                            $regionName = $r['region_number'];
+                            break;
+                        }
+                    }
+                ?>
+                  <span class="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                    Region: <?php echo htmlspecialchars($regionName); ?>
+                  </span>
+                <?php endif; ?>
+                <?php if (!empty($filters['hei_id'])): 
+                    $heiName = '';
+                    foreach ($availableHEIs as $h) {
+                        if ($h['id'] == $filters['hei_id']) {
+                            $heiName = $h['name'];
+                            break;
+                        }
+                    }
+                ?>
+                  <span class="inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
+                    HEI: <?php echo htmlspecialchars($heiName); ?>
+                  </span>
+                <?php endif; ?>
+                <a href="?" class="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-medium hover:bg-slate-200 transition">
+                  <i data-lucide="x" class="h-3 w-3"></i>
+                  Clear All
+                </a>
+              </div>
+            </div>
+            <?php endif; ?>
+          </div>
+        </section>
+
+        <!-- KPI Cards -->
+        <div class="grid md:grid-cols-4 gap-4">
+          <div class="ched-card">
+            <div class="p-5">
+              <div class="flex items-center gap-3">
+                <div class="h-12 w-12 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <i data-lucide="users" class="h-6 w-6 text-blue-600"></i>
+                </div>
+                <div>
+                  <div class="text-xs text-slate-500 font-medium">Total Students</div>
+                  <div class="text-2xl font-bold text-slate-800 mt-1"><?php echo number_format($summary['total_students']); ?></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ched-card">
+            <div class="p-5">
+              <div class="flex items-center gap-3">
+                <div class="h-12 w-12 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+                  <i data-lucide="school" class="h-6 w-6 text-purple-600"></i>
+                </div>
+                <div>
+                  <div class="text-xs text-slate-500 font-medium">Institutions</div>
+                  <div class="text-2xl font-bold text-slate-800 mt-1"><?php echo number_format($summary['hei_count']); ?></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ched-card">
+            <div class="p-5">
+              <div class="flex items-center gap-3">
+                <div class="h-12 w-12 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                  <i data-lucide="graduation-cap" class="h-6 w-6 text-emerald-600"></i>
+                </div>
+                <div>
+                  <div class="text-xs text-slate-500 font-medium">Programs</div>
+                  <div class="text-2xl font-bold text-slate-800 mt-1"><?php echo number_format($summary['program_count']); ?></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ched-card">
+            <div class="p-5">
+              <div class="flex items-center gap-3">
+                <div class="h-12 w-12 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <i data-lucide="ticket" class="h-6 w-6 text-amber-600"></i>
+                </div>
+                <div>
+                  <div class="text-xs text-slate-500 font-medium">Pending Tickets</div>
+                  <div class="text-2xl font-bold text-slate-800 mt-1"><?php echo number_format($pendingTickets); ?></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="grid md:grid-cols-2 gap-6">
+          
+          <!-- Enrollment Trend Chart -->
+          <section class="ched-card">
+            <header class="px-6 py-4 border-b border-slate-200">
+              <h3 class="font-semibold text-slate-800 flex items-center gap-2">
+                <i data-lucide="trending-up" class="h-5 w-5 text-blue-600"></i>
+                Enrollment Trend Over Years
+              </h3>
+              <p class="text-xs text-slate-500 mt-1">Historical enrollment data by academic year</p>
+            </header>
+            <div class="p-6">
+              <canvas id="trendChart" style="max-height: 300px;"></canvas>
+            </div>
+          </section>
+
+          <!-- Top Programs Chart -->
+          <section class="ched-card">
+            <header class="px-6 py-4 border-b border-slate-200">
+              <h3 class="font-semibold text-slate-800 flex items-center gap-2">
+                <i data-lucide="book-open" class="h-5 w-5 text-purple-600"></i>
+                Top 10 Programs by Enrollment
+              </h3>
+              <p class="text-xs text-slate-500 mt-1">Programs with highest student counts</p>
+            </header>
+            <div class="p-6">
+              <canvas id="programChart" style="max-height: 300px;"></canvas>
+            </div>
+          </section>
+
+          <!-- Gender Distribution Chart -->
+          <section class="ched-card">
+            <header class="px-6 py-4 border-b border-slate-200">
+              <h3 class="font-semibold text-slate-800 flex items-center gap-2">
+                <i data-lucide="pie-chart" class="h-5 w-5 text-pink-600"></i>
+                Gender Distribution
+              </h3>
+              <p class="text-xs text-slate-500 mt-1">Male vs Female enrollment ratio</p>
+            </header>
+            <div class="p-6">
+              <canvas id="sexChart" style="max-height: 300px;"></canvas>
+            </div>
+          </section>
+
+          <!-- Distribution by Year Level Chart -->
+          <section class="ched-card">
+            <header class="px-6 py-4 border-b border-slate-200">
+              <h3 class="font-semibold text-slate-800 flex items-center gap-2">
+                <i data-lucide="layers" class="h-5 w-5 text-cyan-600"></i>
+                Distribution by Year Level
+              </h3>
+              <p class="text-xs text-slate-500 mt-1">Student distribution across year levels</p>
+            </header>
+            <div class="p-6">
+              <canvas id="yearLevelChart" style="max-height: 300px;"></canvas>
+            </div>
+          </section>
+
+        </div>
+
+        <!-- Summary Statistics Table -->
+        <section class="ched-card">
+          <header class="ched-card-header">
+            <div>
+              <h3 class="ched-font-semibold text-slate-800">Summary Statistics</h3>
+              <p class="ched-text-sm">Detailed breakdown of enrollment data</p>
+            </div>
+          </header>
+          <div class="p-6">
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Metric</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Value</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-slate-200">
+                  <tr class="hover:bg-slate-50 transition">
+                    <td class="px-4 py-3 text-sm font-medium text-slate-700">Total Students Enrolled</td>
+                    <td class="px-4 py-3 text-sm text-slate-900 text-right font-semibold"><?php echo number_format($summary['total_students']); ?></td>
+                  </tr>
+                  <tr class="hover:bg-slate-50 transition">
+                    <td class="px-4 py-3 text-sm font-medium text-slate-700">Number of Institutions</td>
+                    <td class="px-4 py-3 text-sm text-slate-900 text-right font-semibold"><?php echo number_format($summary['hei_count']); ?></td>
+                  </tr>
+                  <tr class="hover:bg-slate-50 transition">
+                    <td class="px-4 py-3 text-sm font-medium text-slate-700">Number of Programs</td>
+                    <td class="px-4 py-3 text-sm text-slate-900 text-right font-semibold"><?php echo number_format($summary['program_count']); ?></td>
+                  </tr>
+                  <tr class="hover:bg-slate-50 transition">
+                    <td class="px-4 py-3 text-sm font-medium text-slate-700">Male Students</td>
+                    <td class="px-4 py-3 text-sm text-slate-900 text-right font-semibold">
+                      <?php 
+                        $maleCount = 0;
+                        foreach ($sexData as $row) {
+                          if (strtolower($row['sex']) == 'male') {
+                            $maleCount = $row['student_count'];
+                            break;
+                          }
+                        }
+                        $malePercent = $summary['total_students'] > 0 ? ($maleCount / $summary['total_students']) * 100 : 0;
+                        echo number_format($maleCount) . ' (' . number_format($malePercent, 1) . '%)';
+                      ?>
+                    </td>
+                  </tr>
+                  <tr class="hover:bg-slate-50 transition">
+                    <td class="px-4 py-3 text-sm font-medium text-slate-700">Female Students</td>
+                    <td class="px-4 py-3 text-sm text-slate-900 text-right font-semibold">
+                      <?php 
+                        $femaleCount = 0;
+                        foreach ($sexData as $row) {
+                          if (strtolower($row['sex']) == 'female') {
+                            $femaleCount = $row['student_count'];
+                            break;
+                          }
+                        }
+                        $femalePercent = $summary['total_students'] > 0 ? ($femaleCount / $summary['total_students']) * 100 : 0;
+                        echo number_format($femaleCount) . ' (' . number_format($femalePercent, 1) . '%)';
+                      ?>
+                    </td>
+                  </tr>
+                  <tr class="hover:bg-slate-50 transition">
+                    <td class="px-4 py-3 text-sm font-medium text-slate-700">Average Enrollment per HEI</td>
+                    <td class="px-4 py-3 text-sm text-slate-900 text-right font-semibold">
+                      <?php echo $summary['hei_count'] > 0 ? number_format($summary['total_students'] / $summary['hei_count'], 0) : '0'; ?>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
       </div>
     </main>
   </div>
 
-  <script type="module">
-  // TODO[backend]: Replace mock import with server-provided data (DB queries or API endpoints).
-  // Required data: heis, regions, enrollmentData, facultyData, graduatesData, tickets
-    // TODO[backend]: db.getAnalyticsAggregates(filters)
+  <!-- Chart.js Initialization -->
+  <script>
+    // PHP data to JavaScript
+    const trendData = <?php echo json_encode($trendData); ?>;
+    const regionData = <?php echo json_encode($regionData); ?>;
+    const heiData = <?php echo json_encode($topHEIs); ?>;
+    const programData = <?php echo json_encode($programData); ?>;
+    const sexData = <?php echo json_encode($sexData); ?>;
+    const yearLevelData = <?php echo json_encode($yearLevelData); ?>;
 
-    // Elements
-    const fRegion = document.getElementById('fRegion');
-    const fHei = document.getElementById('fHei');
-    const fAy = document.getElementById('fAy');
-    const kEnrollment = document.getElementById('kEnrollment');
-    const kFaculty = document.getElementById('kFaculty');
-    const kGraduates = document.getElementById('kGraduates');
-    const kTickets = document.getElementById('kTickets');
-    const aggTable = document.getElementById('aggTable');
-    const exportCsvBtn = document.getElementById('exportCsv');
-    const exportXlsxBtn = document.getElementById('exportXlsx');
-
-    // Chart contexts
-    const enrollCtx = document.getElementById('enrollTrend').getContext('2d');
-    const facultyCtx = document.getElementById('facultyBar').getContext('2d');
-    const gradsCtx = document.getElementById('graduatesBar').getContext('2d');
-    let enrollChart=null, facultyChart=null, gradsChart=null;
-
-    // Populate filters
-    fRegion.innerHTML = ['All',''].concat(regions).filter(Boolean).map(r=>`<option value="${r}">${r}</option>`).join('');
-    fHei.innerHTML = '<option value="">All HEIs</option>' + heis.map(h=>`<option value="${h.id}">${h.name}</option>`).join('');
-    const aySet = Array.from(new Set(enrollmentData.map(r=>r.acadYear))).sort();
-    fAy.innerHTML = '<option value="">All AY</option>' + aySet.map(a=>`<option value="${a}">${a}</option>`).join('');
-
-    function applyFilters(){
-      const region = fRegion.value || null;
-      const heiId = fHei.value ? Number(fHei.value) : null;
-      const ay = fAy.value ? Number(fAy.value) : null;
-      renderAll({ region, heiId, ay });
-    }
-
-    function renderAll({ region=null, heiId=null, ay=null } = {}){
-      // Filter HEIs by region if provided
-      const heiFilter = heiId ? heis.filter(h=>h.id===heiId) : (region ? heis.filter(h=>h.region===region) : heis.slice());
-      const heiIds = new Set(heiFilter.map(h=>h.id));
-
-      // Enrollment
-      const enrollRows = enrollmentData.filter(r => heiIds.has(r.heiId) && (!ay || r.acadYear===ay));
-      const totalEnroll = enrollRows.reduce((s,r)=>s+(r.totalCount||0),0);
-
-      // Faculty
-      const facRows = facultyData.filter(r=> heiIds.has(r.heiId));
-      const totalFac = facRows.length;
-
-      // Graduates
-      const gradRows = graduatesData.filter(r=> heiIds.has(r.heiId) && (!ay || new Date(r.date).getFullYear()===ay));
-      const totalGrad = gradRows.length;
-
-      // Tickets
-      const openTickets = tickets.filter(t => heiIds.has(t.heiId) && !['Completed','Cancelled'].includes(t.status)).length;
-
-      // KPIs
-      kEnrollment.textContent = totalEnroll.toLocaleString();
-      kFaculty.textContent = String(totalFac);
-      kGraduates.textContent = String(totalGrad);
-      kTickets.textContent = String(openTickets);
-
-      // Aggregated table
-      aggTable.innerHTML = `
-        <tr><td class="p-2">Total Enrollment</td><td class="p-2">${totalEnroll}</td></tr>
-        <tr><td class="p-2">Total Faculty</td><td class="p-2">${totalFac}</td></tr>
-        <tr><td class="p-2">Total Graduates</td><td class="p-2">${totalGrad}</td></tr>
-        <tr><td class="p-2">Open Tickets</td><td class="p-2">${openTickets}</td></tr>
-      `;
-
-      // Charts
-      // Enrollment trend across AY for selected HEIs
-      const years = Array.from(new Set(enrollmentData.filter(r=> heiIds.has(r.heiId)).map(r=>r.acadYear))).sort();
-      const enrollSeries = years.map(y => enrollmentData.filter(r=> heiIds.has(r.heiId) && r.acadYear===y).reduce((s,r)=>s+(r.totalCount||0),0));
-      if (enrollChart) enrollChart.destroy();
-      enrollChart = new Chart(enrollCtx, { type:'line', data:{ labels: years, datasets:[{ label:'Enrollment', data: enrollSeries, borderColor:'#2563eb', backgroundColor:'rgba(37,99,235,0.12)', fill:true }] }, options:{ responsive:true, plugins:{legend:{display:false}} } });
-
-      // Faculty by discipline
-      const discCounts = {};
-      facRows.forEach(f=>{ const d = f.discipline||'Other'; discCounts[d] = (discCounts[d]||0)+1; });
-      const discLabels = Object.keys(discCounts); const discValues = discLabels.map(l=>discCounts[l]);
-      if (facultyChart) facultyChart.destroy();
-      facultyChart = new Chart(facultyCtx, { type:'bar', data:{ labels: discLabels, datasets:[{ label:'Faculty', data: discValues, backgroundColor:'#06b6d4' }] }, options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} } });
-
-      // Graduates by program (top 10)
-      const progCounts = {};
-      gradRows.forEach(g=>{ const p = g.program || 'Unknown'; progCounts[p] = (progCounts[p]||0)+1; });
-      const progEntries = Object.entries(progCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);
-      const progLabels = progEntries.map(e=>e[0]); const progValues = progEntries.map(e=>e[1]);
-      if (gradsChart) gradsChart.destroy();
-      gradsChart = new Chart(gradsCtx, { type:'bar', data:{ labels: progLabels, datasets:[{ label:'Graduates', data: progValues, backgroundColor:'#f97316' }] }, options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} } });
-    }
-
-    // Export CSV
-    function toCSV(){
-      // Minimal CSV export of aggregated metrics
-      const rows = Array.from(aggTable.querySelectorAll('tbody tr')).map(tr => {
-        const cols = Array.from(tr.querySelectorAll('td')).map(td=>td.textContent.trim().replace(/"/g,'""'));
-        return '"'+cols.join('","')+'"';
-      });
-      return ['"Metric","Value"', ...rows].join('\n');
-    }
-    exportCsvBtn.addEventListener('click', async ()=>{
-      // Package aggregated metrics into an array of objects for server-side CSV
-      const rows = Array.from(aggTable.querySelectorAll('tbody tr')).map(tr => {
-        const key = tr.children[0].textContent.trim();
-        const val = tr.children[1].textContent.trim();
-        return { Metric: key, Value: val };
-      });
-      try{
-  const res = await fetch('/PRISM/api/export.php', {
-          method: 'POST', headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ filename: 'analytics_' + (new Date()).toISOString().slice(0,19).replace(/[:T]/g,'_'), format: 'csv', data: rows })
-        });
-        const j = await res.json();
-        if (j.status === 'ok' && j.url) {
-          // download returned URL
-          const a = document.createElement('a'); a.href = j.url; a.download = j.url.split('/').pop(); document.body.appendChild(a); a.click(); a.remove();
-          Swal.fire({ icon:'success', title:'Export started', text:'CSV export generated on server.' , timer:1200, showConfirmButton:false });
-        } else {
-          Swal.fire({ icon:'error', title:'Export failed', text: j.message || 'Unknown error' });
+    // Initialize Chart.js charts
+    document.addEventListener('DOMContentLoaded', function() {
+      // 1. Enrollment Trend Chart
+      const trendCtx = document.getElementById('trendChart').getContext('2d');
+      new Chart(trendCtx, {
+        type: 'line',
+        data: {
+          labels: trendData.map(d => d.acad_year),
+          datasets: [{
+            label: 'Total Students',
+            data: trendData.map(d => parseInt(d.student_count)),
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            fill: true,
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return 'Students: ' + context.parsed.y.toLocaleString();
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function(value) {
+                  return value.toLocaleString();
+                }
+              }
+            }
+          }
         }
-      }catch(err){
-        console.error(err); Swal.fire({ icon:'error', title:'Export failed', text: String(err) });
+      });
+
+      // 2. Top Programs Chart (Horizontal Bar)
+      const programCtx = document.getElementById('programChart').getContext('2d');
+      new Chart(programCtx, {
+        type: 'bar',
+        data: {
+          labels: programData.map(d => d.program),
+          datasets: [{
+            label: 'Students',
+            data: programData.map(d => parseInt(d.student_count)),
+            backgroundColor: '#f59e0b'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return 'Students: ' + context.parsed.x.toLocaleString();
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              ticks: {
+                callback: function(value) {
+                  return value.toLocaleString();
+                }
+              }
+            }
+          }
+        }
+      });
+
+      // 3. Gender Distribution Chart (Pie)
+      const sexCtx = document.getElementById('sexChart').getContext('2d');
+      new Chart(sexCtx, {
+        type: 'pie',
+        data: {
+          labels: sexData.map(d => d.sex),
+          datasets: [{
+            data: sexData.map(d => parseInt(d.student_count)),
+            backgroundColor: ['#3b82f6', '#ec4899', '#6b7280']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const label = context.label || '';
+                  const value = context.parsed || 0;
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = ((value / total) * 100).toFixed(1);
+                  return label + ': ' + value.toLocaleString() + ' (' + percentage + '%)';
+                }
+              }
+            }
+          }
+        }
+      });
+
+      // 4. Distribution by Year Level Chart (Bar)
+      const yearLevelCtx = document.getElementById('yearLevelChart').getContext('2d');
+      new Chart(yearLevelCtx, {
+        type: 'bar',
+        data: {
+          labels: yearLevelData.map(d => d.year_level),
+          datasets: [{
+            label: 'Students',
+            data: yearLevelData.map(d => parseInt(d.student_count)),
+            backgroundColor: '#06b6d4'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return 'Students: ' + context.parsed.y.toLocaleString();
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function(value) {
+                  return value.toLocaleString();
+                }
+              }
+            }
+          }
+        }
+      });
+
+      // Initialize Lucide icons
+      if (window.lucide) {
+        lucide.createIcons();
       }
     });
-    exportXlsxBtn.addEventListener('click', ()=>{
-      Swal.fire({ icon:'info', title:'Export XLSX', text:'Server-side XLSX export will be implemented later.', timer:1200, showConfirmButton:false });
-      // TODO[backend]: server-side XLSX export
-    });
-
-    // Initialize
-    fRegion.addEventListener('change', applyFilters); fHei.addEventListener('change', applyFilters); fAy.addEventListener('change', applyFilters);
-    // default
-    fRegion.value=''; fHei.value=''; fAy.value='';
-    applyFilters();
-
-    if (window.lucide) lucide.createIcons();
   </script>
 </body>
 </html>

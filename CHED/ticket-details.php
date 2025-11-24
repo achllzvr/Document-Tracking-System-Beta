@@ -18,9 +18,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   // status update from CHED
   if (isset($_POST['status'])) {
     $newStatus = trim($_POST['status']);
-    // map textual status to the DB value if needed. Here we store the text.
     $chedId = $_SESSION['chedID'] ?? null;
-    $db->changeTicketStatus($ticketId, $newStatus, $chedId);
+    
+    // Get current ticket status to check for state transitions
+    $currentTicket = $db->getTicketById($ticketId);
+    $currentStatus = $currentTicket['ticket_status'] ?? '';
+    
+    // Special handling: Reopening from "For Review" to "In Progress" deletes records
+    if ($newStatus === 'In Progress' && $currentStatus === 'For Review') {
+      $hasRecords = $db->checkTicketHasRecords($ticketId);
+      if ($hasRecords) {
+        // Reopen ticket and delete records
+        $result = $db->reopenTicketAndDeleteRecords($ticketId);
+        if ($result['success']) {
+          $_SESSION['ticket_reopened'] = true;
+          $_SESSION['records_deleted'] = $result['deleted'];
+        }
+      } else {
+        // No records to delete, just update status
+        $db->changeTicketStatus($ticketId, $newStatus, $chedId);
+      }
+    } else {
+      // Normal status change (no record deletion)
+      $db->changeTicketStatus($ticketId, $newStatus, $chedId);
+    }
+    
     header('Location: ticket-details.php?ticket_id=' . $ticketId);
     exit;
   }
@@ -68,6 +90,13 @@ $comments = $ticketId ? $db->getCommentsForTicket($ticketId) : [];
 // fetch attached templates and active templates for editing
 $attachedTemplates = $ticketId ? $db->getTemplatesForTicket($ticketId) : [];
 $activeTemplates = $db->getTemplates(['status' => 'active']);
+
+// Check for missed due date
+$dueDateInfo = $ticketId ? $db->checkAndUpdateMissedDueDate($ticketId) : ['is_missed' => false, 'has_records' => false, 'status_updated' => false];
+// Refresh ticket if status was updated
+if ($dueDateInfo['status_updated']) {
+    $ticket = $db->getTicketById($ticketId);
+}
 
 ?>
 <!doctype html>
@@ -119,17 +148,24 @@ $activeTemplates = $db->getTemplates(['status' => 'active']);
                     $status = strtolower($ticket['ticket_status'] ?? 'default');
                     $statusClass = 'prism-badge prism-badge-status-' . preg_replace('/\s+/', '', $status);
                   ?>
-                  <select name="status" onchange="this.form.submit()" class="px-2 py-1 rounded border">
+                  <select name="status" id="statusSelect" class="px-2 py-1 rounded border">
                     <option value="Open" <?php echo (($ticket['ticket_status'] ?? '') === 'Open') ? 'selected' : ''; ?>>Open</option>
                     <option value="In Progress" <?php echo (($ticket['ticket_status'] ?? '') === 'In Progress') ? 'selected' : ''; ?>>In Progress</option>
-                    <option value="Pending" <?php echo (($ticket['ticket_status'] ?? '') === 'Pending') ? 'selected' : ''; ?>>Pending</option>
-                    <option value="Resolved" <?php echo (($ticket['ticket_status'] ?? '') === 'Resolved') ? 'selected' : ''; ?>>Resolved</option>
+                    <option value="For Review" <?php echo (($ticket['ticket_status'] ?? '') === 'For Review') ? 'selected' : ''; ?>>For Review</option>
                     <option value="Closed" <?php echo (($ticket['ticket_status'] ?? '') === 'Closed') ? 'selected' : ''; ?>>Closed</option>
                   </select>
                 </form>
               </p>
               </div>
-              <p><span class="text-slate-500">Due:</span> <?php echo !empty($ticket['ticket_due_date']) ? htmlspecialchars(date('F j, Y', strtotime($ticket['ticket_due_date']))) : '-'; ?></p>
+              <p><span class="text-slate-500">Due:</span> 
+                <?php echo !empty($ticket['ticket_due_date']) ? htmlspecialchars(date('F j, Y', strtotime($ticket['ticket_due_date']))) : '-'; ?>
+                <?php if ($dueDateInfo['is_missed']): ?>
+                  <span class="inline-flex items-center gap-1 ml-2 px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                    <i data-lucide="alert-triangle" class="h-3 w-3"></i>
+                    Missed Deadline
+                  </span>
+                <?php endif; ?>
+              </p>
             </div>
             <div class="px-5 pb-5">
               <p><span class="text-slate-500 text-sm">Description:</span>
@@ -399,6 +435,55 @@ $activeTemplates = $db->getTemplates(['status' => 'active']);
         });
       });
     })();
+
+    // Show notification if ticket was reopened
+    <?php if (isset($_SESSION['ticket_reopened']) && $_SESSION['ticket_reopened']): ?>
+      Swal.fire({
+        icon: 'info',
+        title: 'Ticket Reopened',
+        text: 'Status changed to "In Progress". <?php echo isset($_SESSION['records_deleted']) ? $_SESSION['records_deleted'] . ' enrollment records have been deleted.' : 'All records have been deleted.'; ?>',
+        confirmButtonText: 'OK'
+      });
+      <?php 
+        unset($_SESSION['ticket_reopened']);
+        unset($_SESSION['records_deleted']);
+      ?>
+    <?php endif; ?>
+
+    // Add confirmation for status changes that will delete records
+    var statusSelect = document.getElementById('statusSelect');
+    var currentStatus = '<?php echo addslashes($ticket['ticket_status'] ?? ''); ?>';
+    
+    if (statusSelect) {
+      statusSelect.addEventListener('change', function(e){
+        var newStatus = this.value;
+        
+        // Check if changing FROM "For Review" TO "In Progress"
+        if (newStatus === 'In Progress' && currentStatus === 'For Review') {
+          e.preventDefault();
+          Swal.fire({
+            icon: 'warning',
+            title: 'Reopen Ticket?',
+            text: 'Changing status to "In Progress" will DELETE all saved enrollment records. The HEI will need to re-upload. Are you sure?',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete records and reopen',
+            cancelButtonText: 'Cancel'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              this.form.submit();
+            } else {
+              // Reset select to current value
+              this.value = currentStatus;
+            }
+          });
+        } else {
+          // Allow other status changes without confirmation
+          this.form.submit();
+        }
+      });
+    }
     </script>
 </body>
 </html>

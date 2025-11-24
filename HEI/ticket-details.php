@@ -28,6 +28,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment'])) {
 $ticket = $ticketId ? $db->getTicketById($ticketId) : null;
 $comments = $ticketId ? $db->getCommentsForTicket($ticketId) : [];
 
+// Check for missed due date
+$dueDateInfo = $ticketId ? $db->checkAndUpdateMissedDueDate($ticketId) : ['is_missed' => false, 'has_records' => false, 'status_updated' => false];
+// Refresh ticket if status was updated
+if ($dueDateInfo['status_updated']) {
+    $ticket = $db->getTicketById($ticketId);
+}
+
 ?>
 <!doctype html>
 <html lang="en">
@@ -82,7 +89,15 @@ $comments = $ticketId ? $db->getCommentsForTicket($ticketId) : [];
                   <?php echo htmlspecialchars($ticket['ticket_status'] ?? '-'); ?>
                 </span>
               </p>
-              <p><span class="text-slate-500">Due:</span> <?php echo !empty($ticket['ticket_due_date']) ? htmlspecialchars(date('F j, Y', strtotime($ticket['ticket_due_date']))) : '-'; ?></p>
+              <p><span class="text-slate-500">Due:</span> 
+                <?php echo !empty($ticket['ticket_due_date']) ? htmlspecialchars(date('F j, Y', strtotime($ticket['ticket_due_date']))) : '-'; ?>
+                <?php if ($dueDateInfo['is_missed']): ?>
+                  <span class="inline-flex items-center gap-1 ml-2 px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                    <i data-lucide="alert-triangle" class="h-3 w-3"></i>
+                    Missed Deadline
+                  </span>
+                <?php endif; ?>
+              </p>
             </div>
             <div class="px-5 pb-5">
               <p><span class="text-slate-500 text-sm">Description:</span></p>
@@ -90,7 +105,16 @@ $comments = $ticketId ? $db->getCommentsForTicket($ticketId) : [];
             </div>
             <div class="px-5 pb-5 flex items-center gap-3">
               <a class="inline-flex items-center gap-2 px-3 py-2 rounded border hover:bg-slate-50" href="/PRISM/tickets/download-template.php?ticket_id=<?php echo (int)$ticketId; ?>" id="downloadBtn"><i data-lucide="download" class="h-4 w-4"></i> Download Template</a>
-              <button class="inline-flex items-center gap-2 px-3 py-2 rounded bg-blue-600 text-white" id="uploadBtn" data-ticket-id="<?php echo (int)$ticketId; ?>"><i data-lucide="upload" class="h-4 w-4"></i> Upload Completed</button>
+              <?php
+                // Check if upload should be disabled based on ticket status
+                $ticketStatus = $ticket['ticket_status'] ?? '';
+                $uploadDisabled = in_array($ticketStatus, ['For Review', 'Closed', 'Missed']);
+                if ($uploadDisabled):
+              ?>
+                <button class="inline-flex items-center gap-2 px-3 py-2 rounded bg-gray-400 text-white cursor-not-allowed opacity-60" disabled title="Upload is disabled for tickets with status: <?php echo htmlspecialchars($ticketStatus); ?>"><i data-lucide="upload" class="h-4 w-4"></i> Upload Disabled</button>
+              <?php else: ?>
+                <button class="inline-flex items-center gap-2 px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700" id="uploadBtn" data-ticket-id="<?php echo (int)$ticketId; ?>"><i data-lucide="upload" class="h-4 w-4"></i> Upload Completed</button>
+              <?php endif; ?>
             </div>
           <?php endif; ?>
         </section>

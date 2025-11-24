@@ -17,7 +17,21 @@ if (!$ticketId){
     exit;
 }
 
-$rows = $db->getEnrollmentRowsByTicket($ticketId);
+// Pagination parameters
+$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 25;
+// Validate perPage values
+if (!in_array($perPage, [25, 50, 100])) {
+    $perPage = 25;
+}
+$offset = ($page - 1) * $perPage;
+
+// Get total count and paginated rows
+$totalRows = $db->getEnrollmentRowsCountByTicket($ticketId);
+$totalPages = $totalRows > 0 ? ceil($totalRows / $perPage) : 1;
+$page = min($page, $totalPages); // Ensure page doesn't exceed total pages
+
+$rows = $db->getEnrollmentRowsByTicket($ticketId, $perPage, $offset);
 $ticket = $db->getTicketById($ticketId);
 ?>
 <!doctype html>
@@ -27,6 +41,7 @@ $ticket = $db->getTicketById($ticketId);
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Enrollment Details — Ticket <?php echo htmlspecialchars($ticketId); ?></title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="min-h-screen bg-gray-50 text-slate-800">
   <?php require_once __DIR__ . '/../includes/header.php'; ?>
@@ -41,7 +56,22 @@ $ticket = $db->getTicketById($ticketId);
           </div>
           <div class="p-4">
             <div class="flex items-center justify-between mb-4">
-              <div class="text-sm text-slate-600">Total rows: <strong><?php echo count($rows); ?></strong></div>
+              <div class="flex items-center gap-4">
+                <div class="text-sm text-slate-600">Total rows: <strong><?php echo number_format($totalRows); ?></strong></div>
+                <?php if ($totalRows > 0): ?>
+                <div class="text-sm text-slate-500">
+                  Showing <?php echo number_format($offset + 1); ?>-<?php echo number_format(min($offset + $perPage, $totalRows)); ?>
+                </div>
+                <?php endif; ?>
+                <div class="flex items-center gap-2">
+                  <label class="text-sm text-slate-600">Per page:</label>
+                  <select onchange="window.location.href='?ticket_id=<?php echo $ticketId; ?>&page=1&per_page=' + this.value" class="px-2 py-1 border rounded text-sm">
+                    <option value="25" <?php echo $perPage === 25 ? 'selected' : ''; ?>>25</option>
+                    <option value="50" <?php echo $perPage === 50 ? 'selected' : ''; ?>>50</option>
+                    <option value="100" <?php echo $perPage === 100 ? 'selected' : ''; ?>>100</option>
+                  </select>
+                </div>
+              </div>
               <div class="flex items-center gap-2">
                 <?php
                   // choose appropriate ticket-details path based on authenticated user type
@@ -67,22 +97,68 @@ $ticket = $db->getTicketById($ticketId);
                   </tr>
                 </thead>
                 <tbody>
-                <?php foreach ($rows as $i => $r): ?>
-                  <tr style="border-top:1px solid #eee">
-                    <td class="px-3 py-2"><?php echo $i+1; ?></td>
-                    <td class="px-3 py-2"><?php echo htmlspecialchars($r['enr_acad_year'] ?? ''); ?></td>
-                    <td class="px-3 py-2"><?php echo htmlspecialchars($r['enr_term'] ?? ''); ?></td>
-                    <td class="px-3 py-2"><?php echo htmlspecialchars($r['enr_program'] ?? ''); ?></td>
-                    <td class="px-3 py-2"><?php echo htmlspecialchars($r['enr_program_major'] ?? ''); ?></td>
-                    <td class="px-3 py-2"><?php echo htmlspecialchars($r['enr_year_level'] ?? ''); ?></td>
-                    <td class="px-3 py-2"><?php echo htmlspecialchars(strtoupper($r['enr_sex'] ?? '')); ?></td>
-                    <td class="px-3 py-2"><?php echo htmlspecialchars($r['enr_total_count'] ?? ''); ?></td>
-                    <td class="px-3 py-2"><?php echo !empty($r['enr_created_at']) ? htmlspecialchars(date('F j, Y g:ia', strtotime($r['enr_created_at']))) : ''; ?></td>
+                <?php if (empty($rows)): ?>
+                  <tr>
+                    <td colspan="9" class="px-3 py-8 text-center text-slate-500">
+                      <div class="flex flex-col items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-300"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                        <div class="font-medium">No enrollment records found</div>
+                        <div class="text-sm">This ticket has no uploaded data yet.</div>
+                      </div>
+                    </td>
                   </tr>
-                <?php endforeach; ?>
+                <?php else: ?>
+                  <?php foreach ($rows as $i => $r): 
+                    $rowNum = $offset + $i + 1;
+                  ?>
+                    <tr style="border-top:1px solid #eee">
+                      <td class="px-3 py-2"><?php echo $rowNum; ?></td>
+                      <td class="px-3 py-2"><?php echo htmlspecialchars($r['enr_acad_year'] ?? ''); ?></td>
+                      <td class="px-3 py-2"><?php echo htmlspecialchars($r['enr_term'] ?? ''); ?></td>
+                      <td class="px-3 py-2"><?php echo htmlspecialchars($r['enr_program'] ?? ''); ?></td>
+                      <td class="px-3 py-2"><?php echo htmlspecialchars($r['enr_program_major'] ?? ''); ?></td>
+                      <td class="px-3 py-2"><?php echo htmlspecialchars($r['enr_year_level'] ?? ''); ?></td>
+                      <td class="px-3 py-2"><?php echo htmlspecialchars(strtoupper($r['enr_sex'] ?? '')); ?></td>
+                      <td class="px-3 py-2"><?php echo htmlspecialchars($r['enr_total_count'] ?? ''); ?></td>
+                      <td class="px-3 py-2"><?php echo !empty($r['enr_created_at']) ? htmlspecialchars(date('F j, Y g:ia', strtotime($r['enr_created_at']))) : ''; ?></td>
+                    </tr>
+                  <?php endforeach; ?>
+                <?php endif; ?>
                 </tbody>
               </table>
             </div>
+
+            <!-- Pagination Controls -->
+            <?php if ($totalPages > 1): ?>
+            <div class="p-4 border-t flex items-center justify-between">
+              <div class="text-sm text-slate-600">
+                Page <?php echo $page; ?> of <?php echo $totalPages; ?>
+              </div>
+              <div class="flex items-center gap-2">
+                <?php if ($page > 1): ?>
+                  <a href="?ticket_id=<?php echo $ticketId; ?>&page=1&per_page=<?php echo $perPage; ?>" class="px-3 py-1 rounded border hover:bg-slate-50">First</a>
+                  <a href="?ticket_id=<?php echo $ticketId; ?>&page=<?php echo $page - 1; ?>&per_page=<?php echo $perPage; ?>" class="px-3 py-1 rounded border hover:bg-slate-50">Previous</a>
+                <?php endif; ?>
+                
+                <?php
+                  // Show page numbers
+                  $startPage = max(1, $page - 2);
+                  $endPage = min($totalPages, $page + 2);
+                  for ($i = $startPage; $i <= $endPage; $i++):
+                ?>
+                  <a href="?ticket_id=<?php echo $ticketId; ?>&page=<?php echo $i; ?>&per_page=<?php echo $perPage; ?>" 
+                     class="px-3 py-1 rounded border <?php echo $i === $page ? 'bg-blue-600 text-white' : 'hover:bg-slate-50'; ?>">
+                    <?php echo $i; ?>
+                  </a>
+                <?php endfor; ?>
+                
+                <?php if ($page < $totalPages): ?>
+                  <a href="?ticket_id=<?php echo $ticketId; ?>&page=<?php echo $page + 1; ?>&per_page=<?php echo $perPage; ?>" class="px-3 py-1 rounded border hover:bg-slate-50">Next</a>
+                  <a href="?ticket_id=<?php echo $ticketId; ?>&page=<?php echo $totalPages; ?>&per_page=<?php echo $perPage; ?>" class="px-3 py-1 rounded border hover:bg-slate-50">Last</a>
+                <?php endif; ?>
+              </div>
+            </div>
+            <?php endif; ?>
           </div>
         </div>
       </div>

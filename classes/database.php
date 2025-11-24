@@ -37,16 +37,42 @@ class database{
      * Fetch enrollment_data rows associated with a ticket_ID
      * Returns array of associative rows.
      */
-    function getEnrollmentRowsByTicket($ticketId){
+    function getEnrollmentRowsByTicket($ticketId, $limit = null, $offset = 0){
         $conn = $this->opencon();
         try{
             $sql = "SELECT enroll_ID, hei_ID, enr_acad_year, enr_term, enr_program, enr_program_major, enr_year_level, enr_sex, enr_total_count, enr_udd_ID, ticket_ID, enr_created_at FROM enrollment_data WHERE ticket_ID = ? ORDER BY enr_program, enr_year_level, enr_sex";
+            
+            if ($limit !== null) {
+                // Cast to integers and append to SQL (cannot bind LIMIT/OFFSET as parameters in PDO)
+                $limitInt = (int)$limit;
+                $offsetInt = (int)$offset;
+                $sql .= " LIMIT {$limitInt} OFFSET {$offsetInt}";
+            }
+            
             $stmt = $conn->prepare($sql);
             $stmt->execute([$ticketId]);
+            
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         }catch(PDOException $e){
             error_log('getEnrollmentRowsByTicket error: ' . $e->getMessage());
             return [];
+        }
+    }
+
+    /**
+     * Get total count of enrollment rows for a ticket (for pagination)
+     */
+    function getEnrollmentRowsCountByTicket($ticketId){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT COUNT(*) as total FROM enrollment_data WHERE ticket_ID = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$ticketId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return (int)($result['total'] ?? 0);
+        }catch(PDOException $e){
+            error_log('getEnrollmentRowsCountByTicket error: ' . $e->getMessage());
+            return 0;
         }
     }
 
@@ -170,12 +196,17 @@ class database{
     // Fetch all Region Names
     /**
      * Fetch all Region Names
-     * (CHED) view-heis.php, manage-data-templates.php
+     * (CHED) view-heis.php, manage-data-templates.php, hei-analytics.php
      */
     function fetchAllRegions(){
         $conn = $this->opencon();
-        $stmt = $conn->query("SELECT DISTINCT region_ID, region_number, region_division FROM national_regions ORDER BY region_number");
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        try{
+            $stmt = $conn->query("SELECT DISTINCT region_ID, region_number, region_division FROM national_regions ORDER BY region_number");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }catch(PDOException $e){
+            error_log('fetchAllRegions error: ' . $e->getMessage());
+            return [];
+        }
     }
 
     // Fetch all institution types
@@ -312,28 +343,34 @@ class database{
     // =============================================================
     /**
      * Fetch HEIs for dropdown
-     * (SHARED) create-ticket.php, filters, etc.
+     * (SHARED) create-ticket.php, filters, hei-analytics.php, etc.
      */
     function getHEIs($filters = []){
         $conn = $this->opencon();
-        $query = "SELECT hei_ID as id, inst_name as name
-                  FROM institutional_profile_data";
-        $params = [];
-        $conditions = [];
-        if (isset($filters['region'])) {
-            $conditions[] = "inst_region = ?";
-            $params[] = $filters['region'];
+        try{
+            $query = "SELECT hei_ID as id, inst_name as name
+                      FROM institutional_profile_data";
+            $params = [];
+            $conditions = [];
+            if (isset($filters['region'])) {
+                $conditions[] = "inst_region = ?";
+                $params[] = $filters['region'];
+            }
+            if (isset($filters['type'])) {
+                $conditions[] = "inst_type = ?";
+                $params[] = $filters['type'];
+            }
+            if ($conditions) {
+                $query .= " WHERE " . implode(" AND ", $conditions);
+            }
+            $query .= " ORDER BY inst_name";
+            $stmt = $conn->prepare($query);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }catch(PDOException $e){
+            error_log('getHEIs error: ' . $e->getMessage());
+            return [];
         }
-        if (isset($filters['type'])) {
-            $conditions[] = "inst_type = ?";
-            $params[] = $filters['type'];
-        }
-        if ($conditions) {
-            $query .= " WHERE " . implode(" AND ", $conditions);
-        }
-        $stmt = $conn->prepare($query);
-        $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     // =============================================================
@@ -1047,6 +1084,129 @@ class database{
         }
     }
 
+    /**
+     * Check if a ticket has saved enrollment records
+     * Returns true if ticket has associated enrollment records, false otherwise
+     */
+    function checkTicketHasRecords($ticketId){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT COUNT(*) as count FROM enrollment_data WHERE ticket_ID = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$ticketId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return (int)($result['count'] ?? 0) > 0;
+        }catch(PDOException $e){
+            error_log('checkTicketHasRecords error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Delete all enrollment records associated with a ticket
+     * Returns number of deleted records or false on error
+     */
+    function deleteTicketRecords($ticketId){
+        $conn = $this->opencon();
+        try{
+            $sql = "DELETE FROM enrollment_data WHERE ticket_ID = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$ticketId]);
+            return $stmt->rowCount();
+        }catch(PDOException $e){
+            error_log('deleteTicketRecords error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Update ticket status to 'For Review' after HEI uploads records
+     * Returns boolean success
+     */
+    function updateTicketStatusToForReview($ticketId){
+        $conn = $this->opencon();
+        try{
+            $sql = "UPDATE tickets SET ticket_status = 'For Review' WHERE ticket_ID = ?";
+            $stmt = $conn->prepare($sql);
+            return $stmt->execute([$ticketId]);
+        }catch(PDOException $e){
+            error_log('updateTicketStatusToForReview error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Reopen ticket as 'In Progress' and delete associated records
+     * Returns array with ['success' => bool, 'deleted' => int]
+     */
+    function reopenTicketAndDeleteRecords($ticketId){
+        $conn = $this->opencon();
+        try{
+            $conn->beginTransaction();
+            
+            // Delete associated records
+            $deleteSql = "DELETE FROM enrollment_data WHERE ticket_ID = ?";
+            $deleteStmt = $conn->prepare($deleteSql);
+            $deleteStmt->execute([$ticketId]);
+            $deletedCount = $deleteStmt->rowCount();
+            
+            // Update status to In Progress
+            $updateSql = "UPDATE tickets SET ticket_status = 'In Progress' WHERE ticket_ID = ?";
+            $updateStmt = $conn->prepare($updateSql);
+            $updateStmt->execute([$ticketId]);
+            
+            $conn->commit();
+            return ['success' => true, 'deleted' => $deletedCount];
+        }catch(PDOException $e){
+            if ($conn->inTransaction()) $conn->rollBack();
+            error_log('reopenTicketAndDeleteRecords error: ' . $e->getMessage());
+            return ['success' => false, 'deleted' => 0];
+        }
+    }
+
+    /**
+     * Check if ticket due date has been missed and update status if no records exist
+     * Returns array with ['is_missed' => bool, 'has_records' => bool, 'status_updated' => bool]
+     */
+    function checkAndUpdateMissedDueDate($ticketId){
+        $conn = $this->opencon();
+        try{
+            // Get ticket details
+            $ticketSql = "SELECT ticket_due_date, ticket_status FROM tickets WHERE ticket_ID = ? LIMIT 1";
+            $ticketStmt = $conn->prepare($ticketSql);
+            $ticketStmt->execute([$ticketId]);
+            $ticket = $ticketStmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$ticket || empty($ticket['ticket_due_date'])) {
+                return ['is_missed' => false, 'has_records' => false, 'status_updated' => false];
+            }
+            
+            $dueDate = $ticket['ticket_due_date'];
+            $currentDate = date('Y-m-d');
+            $isMissed = $currentDate > $dueDate;
+            
+            if (!$isMissed) {
+                return ['is_missed' => false, 'has_records' => false, 'status_updated' => false];
+            }
+            
+            // Check if ticket has records
+            $hasRecords = $this->checkTicketHasRecords($ticketId);
+            
+            // Only update status to 'Missed' if no records exist and not already in terminal states
+            $statusUpdated = false;
+            if (!$hasRecords && !in_array($ticket['ticket_status'], ['For Review', 'Closed', 'Missed'])) {
+                $updateSql = "UPDATE tickets SET ticket_status = 'Missed' WHERE ticket_ID = ?";
+                $updateStmt = $conn->prepare($updateSql);
+                $statusUpdated = $updateStmt->execute([$ticketId]);
+            }
+            
+            return ['is_missed' => true, 'has_records' => $hasRecords, 'status_updated' => $statusUpdated];
+        }catch(PDOException $e){
+            error_log('checkAndUpdateMissedDueDate error: ' . $e->getMessage());
+            return ['is_missed' => false, 'has_records' => false, 'status_updated' => false];
+        }
+    }
+
     // --- Get comments for ticket (shared) ---
     /**
      * Get comments for a ticket. Return array of associative rows.
@@ -1297,4 +1457,694 @@ class database{
 
     */
 
+    // =============================================================
+    // [HEI] Analytics Functions
+    // Pages: HEI Analytics (hei-analytics.php)
+    // =============================================================
+
+    /**
+     * Get enrollment analytics data for an HEI
+     * Returns aggregated enrollment data by various dimensions
+     * (HEI) hei-analytics.php
+     */
+    function getEnrollmentAnalytics($heiId, $filters = []){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT 
+                        enr_acad_year,
+                        enr_term,
+                        enr_program,
+                        enr_program_major,
+                        enr_year_level,
+                        enr_sex,
+                        SUM(enr_total_count) as total_count
+                    FROM enrollment_data
+                    WHERE hei_ID = ?";
+            
+            $params = [$heiId];
+            
+            if (!empty($filters['acad_year'])){
+                $sql .= " AND enr_acad_year = ?";
+                $params[] = $filters['acad_year'];
+            }
+            if (!empty($filters['term'])){
+                $sql .= " AND enr_term = ?";
+                $params[] = $filters['term'];
+            }
+            if (!empty($filters['program'])){
+                $sql .= " AND enr_program = ?";
+                $params[] = $filters['program'];
+            }
+            
+            $sql .= " GROUP BY enr_acad_year, enr_term, enr_program, enr_program_major, enr_year_level, enr_sex
+                      ORDER BY enr_acad_year DESC, enr_program, enr_year_level";
+            
+            $stmt = $conn->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }catch(PDOException $e){
+            error_log('getEnrollmentAnalytics error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get enrollment summary statistics for an HEI
+     * (HEI) hei-analytics.php
+     */
+    function getEnrollmentSummary($heiId, $filters = []){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT 
+                        COUNT(DISTINCT enr_program) as total_programs,
+                        COUNT(DISTINCT enr_acad_year) as total_years,
+                        SUM(enr_total_count) as total_students
+                    FROM enrollment_data
+                    WHERE hei_ID = ?";
+            
+            $params = [$heiId];
+            
+            if (!empty($filters['acad_year'])){
+                $sql .= " AND enr_acad_year = ?";
+                $params[] = $filters['acad_year'];
+            }
+            
+            $stmt = $conn->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        }catch(PDOException $e){
+            error_log('getEnrollmentSummary error: ' . $e->getMessage());
+            return ['total_programs' => 0, 'total_years' => 0, 'total_students' => 0];
+        }
+    }
+
+    /**
+     * Get available academic years for an HEI
+     * (HEI) hei-analytics.php
+     */
+    function getAvailableAcademicYears($heiId){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT DISTINCT enr_acad_year
+                    FROM enrollment_data
+                    WHERE hei_ID = ?
+                    ORDER BY enr_acad_year DESC";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$heiId]);
+            return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        }catch(PDOException $e){
+            error_log('getAvailableAcademicYears error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get available terms for an HEI
+     * (HEI) hei-analytics.php
+     */
+    function getAvailableTerms($heiId){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT DISTINCT enr_term
+                    FROM enrollment_data
+                    WHERE hei_ID = ? AND enr_term IS NOT NULL
+                    ORDER BY enr_term";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$heiId]);
+            return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        }catch(PDOException $e){
+            error_log('getAvailableTerms error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get available programs for an HEI
+     * (HEI) hei-analytics.php
+     */
+    function getAvailablePrograms($heiId){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT DISTINCT enr_program
+                    FROM enrollment_data
+                    WHERE hei_ID = ? AND enr_program IS NOT NULL
+                    ORDER BY enr_program";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$heiId]);
+            return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        }catch(PDOException $e){
+            error_log('getAvailablePrograms error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get enrollment trend data by academic year
+     * (HEI) hei-analytics.php
+     */
+    function getEnrollmentTrend($heiId){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT 
+                        enr_acad_year,
+                        SUM(enr_total_count) as total
+                    FROM enrollment_data
+                    WHERE hei_ID = ?
+                    GROUP BY enr_acad_year
+                    ORDER BY enr_acad_year ASC";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$heiId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }catch(PDOException $e){
+            error_log('getEnrollmentTrend error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get enrollment distribution by program
+     * (HEI) hei-analytics.php
+     */
+    function getEnrollmentByProgram($heiId, $filters = []){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT 
+                        enr_program,
+                        SUM(enr_total_count) as total
+                    FROM enrollment_data
+                    WHERE hei_ID = ?";
+            
+            $params = [$heiId];
+            
+            if (!empty($filters['acad_year'])){
+                $sql .= " AND enr_acad_year = ?";
+                $params[] = $filters['acad_year'];
+            }
+            
+            $sql .= " GROUP BY enr_program
+                      ORDER BY total DESC
+                      LIMIT 10";
+            
+            $stmt = $conn->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }catch(PDOException $e){
+            error_log('getEnrollmentByProgram error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get enrollment distribution by sex
+     * (HEI) hei-analytics.php
+     */
+    function getEnrollmentBySex($heiId, $filters = []){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT 
+                        enr_sex,
+                        SUM(enr_total_count) as total
+                    FROM enrollment_data
+                    WHERE hei_ID = ?";
+            
+            $params = [$heiId];
+            
+            if (!empty($filters['acad_year'])){
+                $sql .= " AND enr_acad_year = ?";
+                $params[] = $filters['acad_year'];
+            }
+            
+            $sql .= " GROUP BY enr_sex
+                      ORDER BY enr_sex";
+            
+            $stmt = $conn->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }catch(PDOException $e){
+            error_log('getEnrollmentBySex error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get enrollment distribution by year level
+     * (HEI) hei-analytics.php
+     */
+    function getEnrollmentByYearLevel($heiId, $filters = []){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT 
+                        enr_year_level,
+                        SUM(enr_total_count) as total
+                    FROM enrollment_data
+                    WHERE hei_ID = ?";
+            
+            $params = [$heiId];
+            
+            if (!empty($filters['acad_year'])){
+                $sql .= " AND enr_acad_year = ?";
+                $params[] = $filters['acad_year'];
+            }
+            
+            $sql .= " GROUP BY enr_year_level
+                      ORDER BY enr_year_level";
+            
+            $stmt = $conn->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }catch(PDOException $e){
+            error_log('getEnrollmentByYearLevel error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    // =============================================================
+    // [CHED] Analytics Functions (System-wide)
+    // Pages: CHED hei-analytics.php
+    // =============================================================
+
+    /**
+     * Get system-wide enrollment analytics across all HEIs or filtered
+     * (CHED) hei-analytics.php
+     */
+    function getCHEDEnrollmentAnalytics($filters = []){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT 
+                        e.hei_ID,
+                        i.inst_name,
+                        i.inst_region,
+                        e.enr_acad_year,
+                        e.enr_term,
+                        e.enr_program,
+                        e.enr_year_level,
+                        e.enr_sex,
+                        SUM(e.enr_total_count) as total_count
+                    FROM enrollment_data e
+                    JOIN institutional_profile_data i ON i.hei_ID = e.hei_ID
+                    WHERE 1=1";
+            
+            $params = [];
+            
+            if (!empty($filters['hei_id'])){
+                $sql .= " AND e.hei_ID = ?";
+                $params[] = $filters['hei_id'];
+            }
+            if (!empty($filters['region'])){
+                $sql .= " AND i.inst_region = ?";
+                $params[] = $filters['region'];
+            }
+            if (!empty($filters['acad_year'])){
+                $sql .= " AND e.enr_acad_year = ?";
+                $params[] = $filters['acad_year'];
+            }
+            if (!empty($filters['term'])){
+                $sql .= " AND e.enr_term = ?";
+                $params[] = $filters['term'];
+            }
+            if (!empty($filters['program'])){
+                $sql .= " AND e.enr_program = ?";
+                $params[] = $filters['program'];
+            }
+            
+            $sql .= " GROUP BY e.hei_ID, i.inst_name, i.inst_region, e.enr_acad_year, e.enr_term, e.enr_program, e.enr_year_level, e.enr_sex
+                      ORDER BY e.enr_acad_year DESC, i.inst_name";
+            
+            $stmt = $conn->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }catch(PDOException $e){
+            error_log('getCHEDEnrollmentAnalytics error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get system-wide enrollment summary statistics
+     * (CHED) hei-analytics.php
+     */
+    function getCHEDEnrollmentSummary($filters = []){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT 
+                        COALESCE(COUNT(DISTINCT e.hei_ID), 0) as hei_count,
+                        COALESCE(COUNT(DISTINCT e.enr_program), 0) as program_count,
+                        COALESCE(SUM(e.enr_total_count), 0) as total_students
+                    FROM enrollment_data e
+                    JOIN institutional_profile_data i ON i.hei_ID = e.hei_ID
+                    WHERE 1=1";
+            
+            $params = [];
+            
+            if (!empty($filters['hei_id'])){
+                $sql .= " AND e.hei_ID = ?";
+                $params[] = $filters['hei_id'];
+            }
+            if (!empty($filters['region'])){
+                $sql .= " AND i.inst_region = ?";
+                $params[] = $filters['region'];
+            }
+            if (!empty($filters['acad_year'])){
+                $sql .= " AND e.enr_acad_year = ?";
+                $params[] = $filters['acad_year'];
+            }
+            
+            $stmt = $conn->prepare($sql);
+            $stmt->execute($params);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // Ensure all values are integers, not null
+            return [
+                'hei_count' => (int)($result['hei_count'] ?? 0),
+                'program_count' => (int)($result['program_count'] ?? 0),
+                'total_students' => (int)($result['total_students'] ?? 0)
+            ];
+        }catch(PDOException $e){
+            error_log('getCHEDEnrollmentSummary error: ' . $e->getMessage());
+            return ['hei_count' => 0, 'program_count' => 0, 'total_students' => 0];
+        }
+    }
+
+    /**
+     * Get enrollment trend across all HEIs by academic year
+     * (CHED) hei-analytics.php
+     */
+    function getCHEDEnrollmentTrend($filters = []){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT 
+                        e.enr_acad_year as acad_year,
+                        COALESCE(SUM(e.enr_total_count), 0) as student_count
+                    FROM enrollment_data e
+                    JOIN institutional_profile_data i ON i.hei_ID = e.hei_ID
+                    WHERE e.enr_acad_year IS NOT NULL";
+            
+            $params = [];
+            
+            if (!empty($filters['hei_id'])){
+                $sql .= " AND e.hei_ID = ?";
+                $params[] = $filters['hei_id'];
+            }
+            if (!empty($filters['region'])){
+                $sql .= " AND i.inst_region = ?";
+                $params[] = $filters['region'];
+            }
+            
+            $sql .= " GROUP BY e.enr_acad_year
+                      ORDER BY e.enr_acad_year ASC";
+            
+            $stmt = $conn->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }catch(PDOException $e){
+            error_log('getCHEDEnrollmentTrend error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get enrollment by region
+     * (CHED) hei-analytics.php
+     */
+    function getCHEDEnrollmentByRegion($filters = []){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT 
+                        nr.region_number,
+                        nr.region_division,
+                        COALESCE(SUM(e.enr_total_count), 0) as student_count
+                    FROM enrollment_data e
+                    JOIN institutional_profile_data i ON i.hei_ID = e.hei_ID
+                    JOIN national_regions nr ON nr.region_ID = i.inst_region
+                    WHERE nr.region_number IS NOT NULL";
+            
+            $params = [];
+            
+            if (!empty($filters['hei_id'])){
+                $sql .= " AND e.hei_ID = ?";
+                $params[] = $filters['hei_id'];
+            }
+            if (!empty($filters['acad_year'])){
+                $sql .= " AND e.enr_acad_year = ?";
+                $params[] = $filters['acad_year'];
+            }
+            
+            $sql .= " GROUP BY nr.region_number, nr.region_division
+                      ORDER BY student_count DESC
+                      LIMIT 10";
+            
+            $stmt = $conn->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }catch(PDOException $e){
+            error_log('getCHEDEnrollmentByRegion error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get top HEIs by enrollment
+     * (CHED) hei-analytics.php
+     */
+    function getCHEDTopHEIsByEnrollment($filters = [], $limit = 10){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT 
+                        i.hei_ID,
+                        i.inst_name as hei_name,
+                        COALESCE(SUM(e.enr_total_count), 0) as student_count
+                    FROM enrollment_data e
+                    JOIN institutional_profile_data i ON i.hei_ID = e.hei_ID
+                    WHERE i.inst_name IS NOT NULL";
+            
+            $params = [];
+            
+            if (!empty($filters['region'])){
+                $sql .= " AND i.inst_region = ?";
+                $params[] = $filters['region'];
+            }
+            if (!empty($filters['acad_year'])){
+                $sql .= " AND e.enr_acad_year = ?";
+                $params[] = $filters['acad_year'];
+            }
+            
+            $sql .= " GROUP BY i.hei_ID, i.inst_name
+                      ORDER BY student_count DESC
+                      LIMIT ?";
+            
+            $stmt = $conn->prepare($sql);
+            foreach ($params as $i => $val) {
+                $stmt->bindValue($i + 1, $val);
+            }
+            $stmt->bindValue(count($params) + 1, (int)$limit, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }catch(PDOException $e){
+            error_log('getCHEDTopHEIsByEnrollment error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get enrollment by program (top programs)
+     * (CHED) hei-analytics.php
+     */
+    function getCHEDEnrollmentByProgram($filters = [], $limit = 10){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT 
+                        e.enr_program as program,
+                        COALESCE(SUM(e.enr_total_count), 0) as student_count
+                    FROM enrollment_data e
+                    JOIN institutional_profile_data i ON i.hei_ID = e.hei_ID
+                    WHERE e.enr_program IS NOT NULL AND e.enr_program != ''";
+            
+            $params = [];
+            
+            if (!empty($filters['hei_id'])){
+                $sql .= " AND e.hei_ID = ?";
+                $params[] = $filters['hei_id'];
+            }
+            if (!empty($filters['region'])){
+                $sql .= " AND i.inst_region = ?";
+                $params[] = $filters['region'];
+            }
+            if (!empty($filters['acad_year'])){
+                $sql .= " AND e.enr_acad_year = ?";
+                $params[] = $filters['acad_year'];
+            }
+            
+            $sql .= " GROUP BY e.enr_program
+                      ORDER BY student_count DESC
+                      LIMIT ?";
+            
+            $stmt = $conn->prepare($sql);
+            foreach ($params as $i => $val) {
+                $stmt->bindValue($i + 1, $val);
+            }
+            $stmt->bindValue(count($params) + 1, (int)$limit, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }catch(PDOException $e){
+            error_log('getCHEDEnrollmentByProgram error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get system-wide enrollment by sex
+     * (CHED) hei-analytics.php
+     */
+    function getCHEDEnrollmentBySex($filters = []){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT 
+                        e.enr_sex as sex,
+                        SUM(e.enr_total_count) as student_count
+                    FROM enrollment_data e
+                    JOIN institutional_profile_data i ON i.hei_ID = e.hei_ID
+                    WHERE e.enr_sex IS NOT NULL AND e.enr_sex != ''";
+            
+            $params = [];
+            
+            if (!empty($filters['hei_id'])){
+                $sql .= " AND e.hei_ID = ?";
+                $params[] = $filters['hei_id'];
+            }
+            if (!empty($filters['region'])){
+                $sql .= " AND i.inst_region = ?";
+                $params[] = $filters['region'];
+            }
+            if (!empty($filters['acad_year'])){
+                $sql .= " AND e.enr_acad_year = ?";
+                $params[] = $filters['acad_year'];
+            }
+            
+            $sql .= " GROUP BY e.enr_sex
+                      ORDER BY e.enr_sex";
+            
+            $stmt = $conn->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }catch(PDOException $e){
+            error_log('getCHEDEnrollmentBySex error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get all available academic years (system-wide)
+     * (CHED) hei-analytics.php
+     */
+    function getCHEDAvailableAcademicYears(){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT DISTINCT enr_acad_year
+                    FROM enrollment_data
+                    ORDER BY enr_acad_year DESC";
+            $stmt = $conn->query($sql);
+            return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        }catch(PDOException $e){
+            error_log('getCHEDAvailableAcademicYears error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get all available terms (system-wide)
+     * (CHED) hei-analytics.php
+     */
+    function getCHEDAvailableTerms(){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT DISTINCT enr_term
+                    FROM enrollment_data
+                    WHERE enr_term IS NOT NULL AND enr_term != ''
+                    ORDER BY enr_term";
+            $stmt = $conn->query($sql);
+            return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        }catch(PDOException $e){
+            error_log('getCHEDAvailableTerms error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get all available programs (system-wide)
+     * (CHED) hei-analytics.php
+     */
+    function getCHEDAvailablePrograms(){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT DISTINCT enr_program
+                    FROM enrollment_data
+                    WHERE enr_program IS NOT NULL AND enr_program != ''
+                    ORDER BY enr_program";
+            $stmt = $conn->query($sql);
+            return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        }catch(PDOException $e){
+            error_log('getCHEDAvailablePrograms error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get total pending tickets count (system-wide)
+     * (CHED) hei-analytics.php
+     */
+    function getCHEDTotalPendingTicketsCount(){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT COUNT(*) as total FROM tickets WHERE ticket_status IN (0, 1)";
+            $stmt = $conn->query($sql);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return (int)($result['total'] ?? 0);
+        }catch(PDOException $e){
+            error_log('getCHEDTotalPendingTicketsCount error: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Get system-wide enrollment by year level
+     * (CHED) hei-analytics.php
+     */
+    function getCHEDEnrollmentByYearLevel($filters = []){
+        $conn = $this->opencon();
+        try{
+            $sql = "SELECT 
+                        e.enr_year_level as year_level,
+                        COALESCE(SUM(e.enr_total_count), 0) as student_count
+                    FROM enrollment_data e
+                    JOIN institutional_profile_data i ON i.hei_ID = e.hei_ID
+                    WHERE e.enr_year_level IS NOT NULL AND e.enr_year_level != ''";
+            
+            $params = [];
+            
+            if (!empty($filters['hei_id'])){
+                $sql .= " AND e.hei_ID = ?";
+                $params[] = $filters['hei_id'];
+            }
+            if (!empty($filters['region'])){
+                $sql .= " AND i.inst_region = ?";
+                $params[] = $filters['region'];
+            }
+            if (!empty($filters['acad_year'])){
+                $sql .= " AND e.enr_acad_year = ?";
+                $params[] = $filters['acad_year'];
+            }
+            
+            $sql .= " GROUP BY e.enr_year_level
+                      ORDER BY e.enr_year_level";
+            
+            $stmt = $conn->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }catch(PDOException $e){
+            error_log('getCHEDEnrollmentByYearLevel error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
 }
+

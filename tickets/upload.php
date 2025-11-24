@@ -457,6 +457,11 @@ if (isset($_GET['commit_token']) && $_GET['commit_token']){
         respond(false, 'Batch insert failed.');
     }
 
+    // Update ticket status to 'For Review' after successful upload
+    if ($payloadTicketId && $inserted > 0){
+        $db->updateTicketStatusToForReview($payloadTicketId);
+    }
+
     // cleanup temp preview file after successful commit
     @unlink($tmpFile);
 
@@ -473,6 +478,11 @@ if (empty($parsedRows)){
 $inserted = $db->createEnrollmentRowsBatch($targetHei, $parsedRows, $ticketId ?: null);
 if ($inserted === false){
     respond(false, 'Batch insert failed.', ['errors' => $errors]);
+}
+
+// Update ticket status to 'For Review' after successful upload
+if ($ticketId && $inserted > 0){
+    $db->updateTicketStatusToForReview($ticketId);
 }
 
 // respond with summary
