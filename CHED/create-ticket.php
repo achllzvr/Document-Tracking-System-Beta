@@ -14,13 +14,48 @@ $sweetAlertConfig = "";
 
 // Form submission handling
 if (isset($_POST['create_ticket'])) {
-    $heiId = $_POST['hei'];
     $chedUserID = $_SESSION['chedID'];
     $title = $_POST['title'];
     $category = $_POST['category'];
     $priority = $_POST['priority'];
     $dueDate = $_POST['due'];
-    $description = $_POST['desc']; 
+    $description = $_POST['desc'];
+    
+    // Determine if this is single or batch mode
+    $isBatchMode = isset($_POST['batch_mode']) && $_POST['batch_mode'] === '1';
+    
+    // Get HEI IDs
+    $heiIds = [];
+    if ($isBatchMode) {
+        // Batch mode: get multiple HEI IDs from checkboxes
+        $heiIds = isset($_POST['hei_ids']) && is_array($_POST['hei_ids']) ? array_map('intval', $_POST['hei_ids']) : [];
+        if (empty($heiIds)) {
+            $sweetAlertConfig = "
+            <script>
+            Swal.fire({
+              icon: 'error',
+              title: 'No HEIs Selected',
+              text: 'Please select at least one institution to create tickets for.'
+            });
+            </script>";
+            goto skip_processing;
+        }
+    } else {
+        // Single mode: get single HEI ID from dropdown
+        $heiId = isset($_POST['hei']) ? (int)$_POST['hei'] : 0;
+        if (!$heiId) {
+            $sweetAlertConfig = "
+            <script>
+            Swal.fire({
+              icon: 'error',
+              title: 'No Institution Selected',
+              text: 'Please select an institution.'
+            });
+            </script>";
+            goto skip_processing;
+        }
+        $heiIds = [$heiId];
+    } 
   // Validate templates selection: require at least one active template attached
   $templateIds = isset($_POST['template_ids']) && is_array($_POST['template_ids']) ? array_values(array_map('intval', $_POST['template_ids'])) : [];
 
@@ -49,18 +84,74 @@ if (isset($_POST['create_ticket'])) {
       });
       </script>";
     } else {
-      // Insert ticket into database
-      $ticketID = $con->createTicket($heiId, $chedUserID, $title, $category, $priority, $dueDate, $description);
-      if ($ticketID) {
-        // attach templates
-        $ok = $con->setTemplatesForTicket($ticketID, $templateIds, $chedUserID);
-        if ($ok) {
+      // Create tickets (single or batch)
+      if (count($heiIds) === 1) {
+        // Single ticket creation
+        $ticketID = $con->createTicket($heiIds[0], $chedUserID, $title, $category, $priority, $dueDate, $description);
+        if ($ticketID) {
+          // attach templates
+          $ok = $con->setTemplatesForTicket($ticketID, $templateIds, $chedUserID);
+          if ($ok) {
+            $sweetAlertConfig = "
+            <script>
+            Swal.fire({
+              icon: 'success',
+              title: 'Ticket Created',
+              text: 'The ticket has been successfully created.',
+              confirmButtonText: 'OK'
+            }).then(() => {
+              window.location.href = './view-tickets.php';
+            });
+            </script>";
+          } else {
+            $sweetAlertConfig = "
+            <script>
+            Swal.fire({
+              icon: 'error',
+              title: 'Attachment Failed',
+              text: 'Ticket created but failed to attach templates. Please edit the ticket to attach templates.'
+            }).then(() => {
+              window.location.href = './view-tickets.php';
+            });
+            </script>";
+          }
+        } else {
           $sweetAlertConfig = "
           <script>
           Swal.fire({
-            icon: 'success',
-            title: 'Ticket Created',
-            text: 'The ticket has been successfully created.',
+            icon: 'error',
+            title: 'Creation Failed',
+            text: 'There was an error creating the ticket. Please try again.'
+          });
+          </script>";
+        }
+      } else {
+        // Batch ticket creation
+        $result = $con->createTicketBatch($heiIds, $chedUserID, $title, $category, $priority, $dueDate, $description);
+        
+        if ($result['success'] > 0) {
+          // Attach templates to all created tickets
+          $attachmentErrors = 0;
+          foreach ($result['ticket_ids'] as $tId) {
+            $ok = $con->setTemplatesForTicket($tId, $templateIds, $chedUserID);
+            if (!$ok) $attachmentErrors++;
+          }
+          
+          $totalHEIs = count($heiIds);
+          $message = "Successfully created {$result['success']} ticket(s) for {$result['success']} HEI(s).";
+          if ($result['failed'] > 0) {
+            $message .= " Failed to create {$result['failed']} ticket(s).";
+          }
+          if ($attachmentErrors > 0) {
+            $message .= " Warning: {$attachmentErrors} ticket(s) created but template attachment failed.";
+          }
+          
+          $sweetAlertConfig = "
+          <script>
+          Swal.fire({
+            icon: '" . ($result['failed'] > 0 || $attachmentErrors > 0 ? 'warning' : 'success') . "',
+            title: 'Batch Ticket Creation',
+            html: '" . addslashes($message) . "',
             confirmButtonText: 'OK'
           }).then(() => {
             window.location.href = './view-tickets.php';
@@ -71,25 +162,16 @@ if (isset($_POST['create_ticket'])) {
           <script>
           Swal.fire({
             icon: 'error',
-            title: 'Attachment Failed',
-            text: 'Ticket created but failed to attach templates. Please edit the ticket to attach templates.'
-          }).then(() => {
-            window.location.href = './view-tickets.php';
+            title: 'Batch Creation Failed',
+            text: 'Failed to create any tickets. Please try again.'
           });
           </script>";
         }
-      } else {
-        $sweetAlertConfig = "
-        <script>
-        Swal.fire({
-          icon: 'error',
-          title: 'Creation Failed',
-          text: 'There was an error creating the ticket. Please try again.'
-        });
-        </script>";
       }
     }
   }
+  
+  skip_processing:
     
 
 }
@@ -114,6 +196,14 @@ if (isset($_POST['create_ticket'])) {
         <?php
           // fetch active templates for rendering the selector
           $activeTemplates = $con->getTemplates(['status' => 'active']);
+          // fetch all HEIs with additional profile data for filtering
+          $allHeis = $con->getHEIs();
+          // Get unique regions and municipalities for filter dropdowns
+          $conn = $con->opencon();
+          $regionsStmt = $conn->query("SELECT DISTINCT ipd.inst_region, nr.region_number, nr.region_division FROM institutional_profile_data ipd LEFT JOIN national_regions nr ON ipd.inst_region = nr.region_ID WHERE ipd.inst_region IS NOT NULL ORDER BY nr.region_number");
+          $regions = $regionsStmt->fetchAll(PDO::FETCH_ASSOC);
+          $municipalitiesStmt = $conn->query("SELECT DISTINCT inst_municipality_city FROM institutional_profile_data WHERE inst_municipality_city IS NOT NULL AND inst_municipality_city != '' ORDER BY inst_municipality_city");
+          $municipalities = $municipalitiesStmt->fetchAll(PDO::FETCH_COLUMN);
         ?>
         <form  method="post" action="" id="ticketForm" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
           <div class="px-5 pt-5 pb-3 border-b">
@@ -121,22 +211,97 @@ if (isset($_POST['create_ticket'])) {
             <p class="text-sm text-slate-500">Set organization, details, and due date</p>
           </div>
           <div class="p-5 grid md:grid-cols-2 gap-4">
+            <!-- Batch Mode Toggle -->
             <div class="md:col-span-2">
+              <div class="flex items-center gap-4 p-3 bg-slate-50 rounded-lg border">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="selection_mode" value="single" checked class="w-4 h-4" onchange="toggleSelectionMode()" />
+                  <span class="text-sm font-medium">Single Institution</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="selection_mode" value="batch" class="w-4 h-4" onchange="toggleSelectionMode()" />
+                  <span class="text-sm font-medium">Multiple Institutions (Batch)</span>
+                </label>
+              </div>
+              <input type="hidden" name="batch_mode" id="batch_mode" value="0" />
+            </div>
+
+            <!-- Single Institution Selector (Default) -->
+            <div class="md:col-span-2" id="singleSelector">
               <label for="hei" class="block text-sm font-medium mb-1">Institution</label>
-              <select name="hei" id="hei" required class="w-full px-3 py-2 rounded border" aria-label="Institution">
-
-              <!-- Default option -->
-              <option value="" disabled selected>Select Institution</option>
-
-              <!-- HEI Fetch from database  -->
-              <?php
-              $heis = $con->getHEIs();
-              foreach ($heis as $hei) {
-                  echo '<option value="' . htmlspecialchars($hei['id']) . '">' . htmlspecialchars($hei['name']) . '</option>';
-              }
-              ?>
-
+              <select name="hei" id="hei" class="w-full px-3 py-2 rounded border" aria-label="Institution">
+                <option value="" disabled selected>Select Institution</option>
+                <?php
+                foreach ($allHeis as $hei) {
+                    echo '<option value="' . htmlspecialchars($hei['id']) . '">' . htmlspecialchars($hei['name']) . '</option>';
+                }
+                ?>
               </select>
+            </div>
+
+            <!-- Batch Institution Selector (Hidden by default) -->
+            <div class="md:col-span-2 hidden" id="batchSelector">
+              <label class="block text-sm font-medium mb-2">Select Multiple Institutions</label>
+              
+              <!-- Filter Controls -->
+              <div class="mb-3 p-3 bg-slate-50 rounded border">
+                <div class="text-xs font-medium text-slate-600 mb-2">Quick Filters:</div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <div>
+                    <label class="text-xs text-slate-500">Region:</label>
+                    <select id="filterRegion" class="w-full px-2 py-1 text-sm rounded border" onchange="applyFilters()">
+                      <option value="">All Regions</option>
+                      <?php foreach ($regions as $region): ?>
+                        <option value="<?php echo htmlspecialchars($region['inst_region']); ?>">Region <?php echo htmlspecialchars($region['region_number']); ?><?php echo htmlspecialchars($region['region_division']); ?></option>
+                      <?php endforeach; ?>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="text-xs text-slate-500">Municipality/City:</label>
+                    <select id="filterMunicipality" class="w-full px-2 py-1 text-sm rounded border" onchange="applyFilters()">
+                      <option value="">All Municipalities</option>
+                      <?php foreach ($municipalities as $muni): ?>
+                        <option value="<?php echo htmlspecialchars($muni); ?>"><?php echo htmlspecialchars($muni); ?></option>
+                      <?php endforeach; ?>
+                    </select>
+                  </div>
+                  <div class="flex items-end gap-2">
+                    <button type="button" onclick="selectAllFiltered()" class="flex-1 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded border border-blue-300 hover:bg-blue-200">Select All</button>
+                    <button type="button" onclick="deselectAll()" class="flex-1 px-2 py-1 text-xs bg-slate-100 text-slate-700 rounded border hover:bg-slate-200">Clear All</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- HEI Checkboxes -->
+              <div class="max-h-64 overflow-y-auto border rounded p-3">
+                <div class="text-xs text-slate-500 mb-2"><span id="selectedCount">0</span> institution(s) selected</div>
+                <div id="heiCheckboxList" class="grid grid-cols-1 gap-1">
+                  <?php
+                  // Fetch HEIs with region and municipality data
+                  $heiStmt = $conn->query("SELECT ipd.hei_ID, ipd.inst_name, ipd.inst_region, ipd.inst_municipality_city, nr.region_number, nr.region_division FROM institutional_profile_data ipd LEFT JOIN national_regions nr ON ipd.inst_region = nr.region_ID ORDER BY ipd.inst_name");
+                  $heisWithData = $heiStmt->fetchAll(PDO::FETCH_ASSOC);
+                  
+                  foreach ($heisWithData as $hei):
+                  ?>
+                    <label class="hei-checkbox-item flex items-start gap-2 p-2 hover:bg-slate-50 rounded cursor-pointer" 
+                           data-region="<?php echo htmlspecialchars($hei['inst_region'] ?? ''); ?>" 
+                           data-municipality="<?php echo htmlspecialchars($hei['inst_municipality_city'] ?? ''); ?>">
+                      <input type="checkbox" name="hei_ids[]" value="<?php echo (int)$hei['hei_ID']; ?>" class="mt-0.5" onchange="updateSelectedCount()" />
+                      <div class="flex-1">
+                        <div class="text-sm font-medium"><?php echo htmlspecialchars($hei['inst_name']); ?></div>
+                        <div class="text-xs text-slate-500">
+                          <?php if ($hei['region_number']): ?>
+                            Region <?php echo htmlspecialchars($hei['region_number']); ?><?php echo htmlspecialchars($hei['region_division']); ?>
+                          <?php endif; ?>
+                          <?php if ($hei['inst_municipality_city']): ?>
+                            • <?php echo htmlspecialchars($hei['inst_municipality_city']); ?>
+                          <?php endif; ?>
+                        </div>
+                      </div>
+                    </label>
+                  <?php endforeach; ?>
+                </div>
+              </div>
             </div>
             <div class="md:col-span-2">
               <label for="title" class="block text-sm font-medium mb-1">Title</label>
@@ -216,6 +381,95 @@ if (isset($_POST['create_ticket'])) {
       var sel = document.getElementById('category');
       if (sel){ sel.addEventListener('change', filter); window.addEventListener('load', filter); }
     })();
+
+    // Toggle between single and batch selection mode
+    function toggleSelectionMode() {
+      var mode = document.querySelector('input[name="selection_mode"]:checked').value;
+      var singleSelector = document.getElementById('singleSelector');
+      var batchSelector = document.getElementById('batchSelector');
+      var batchModeInput = document.getElementById('batch_mode');
+      var heiSelect = document.getElementById('hei');
+      
+      if (mode === 'batch') {
+        singleSelector.classList.add('hidden');
+        batchSelector.classList.remove('hidden');
+        batchModeInput.value = '1';
+        heiSelect.removeAttribute('required');
+      } else {
+        singleSelector.classList.remove('hidden');
+        batchSelector.classList.add('hidden');
+        batchModeInput.value = '0';
+        heiSelect.setAttribute('required', 'required');
+      }
+    }
+
+    // Apply filters to HEI checkbox list
+    function applyFilters() {
+      var regionFilter = document.getElementById('filterRegion').value;
+      var municipalityFilter = document.getElementById('filterMunicipality').value;
+      var items = document.querySelectorAll('.hei-checkbox-item');
+      
+      items.forEach(function(item) {
+        var region = item.getAttribute('data-region');
+        var municipality = item.getAttribute('data-municipality');
+        var show = true;
+        
+        if (regionFilter && region !== regionFilter) show = false;
+        if (municipalityFilter && municipality !== municipalityFilter) show = false;
+        
+        item.style.display = show ? '' : 'none';
+      });
+      
+      updateSelectedCount();
+    }
+
+    // Select all filtered (visible) HEIs
+    function selectAllFiltered() {
+      var items = document.querySelectorAll('.hei-checkbox-item');
+      items.forEach(function(item) {
+        if (item.style.display !== 'none') {
+          var checkbox = item.querySelector('input[type="checkbox"]');
+          checkbox.checked = true;
+        }
+      });
+      updateSelectedCount();
+    }
+
+    // Deselect all HEIs
+    function deselectAll() {
+      var checkboxes = document.querySelectorAll('.hei-checkbox-item input[type="checkbox"]');
+      checkboxes.forEach(function(cb) {
+        cb.checked = false;
+      });
+      updateSelectedCount();
+    }
+
+    // Update selected count display
+    function updateSelectedCount() {
+      var checkboxes = document.querySelectorAll('.hei-checkbox-item input[type="checkbox"]:checked');
+      var count = checkboxes.length;
+      var countDisplay = document.getElementById('selectedCount');
+      if (countDisplay) {
+        countDisplay.textContent = count;
+      }
+    }
+
+    // Form validation for batch mode
+    document.getElementById('ticketForm').addEventListener('submit', function(e) {
+      var mode = document.querySelector('input[name="selection_mode"]:checked').value;
+      if (mode === 'batch') {
+        var checkedBoxes = document.querySelectorAll('.hei-checkbox-item input[type="checkbox"]:checked');
+        if (checkedBoxes.length === 0) {
+          e.preventDefault();
+          Swal.fire({
+            icon: 'warning',
+            title: 'No Institutions Selected',
+            text: 'Please select at least one institution to create tickets for.'
+          });
+          return false;
+        }
+      }
+    });
   </script>
 
   <?php echo $sweetAlertConfig; ?>

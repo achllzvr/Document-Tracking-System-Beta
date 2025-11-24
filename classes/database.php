@@ -400,6 +400,45 @@ class database{
         }
     }
 
+    /**
+     * Create tickets for multiple HEIs in batch
+     * Returns array with ['success' => int (count), 'failed' => int (count), 'ticket_ids' => array]
+     * (CHED) create-ticket.php
+     */
+    function createTicketBatch($heiIDs, $chedUserID, $title, $category, $priority, $dueDate, $description){
+        if (empty($heiIDs) || !is_array($heiIDs)) {
+            return ['success' => 0, 'failed' => 0, 'ticket_ids' => []];
+        }
+        
+        $conn = $this->opencon();
+        $successCount = 0;
+        $failedCount = 0;
+        $ticketIds = [];
+        
+        try{
+            $stmt = $conn->prepare("INSERT INTO tickets (hei_ID, ched_user_ID, ticket_title, ticket_category, ticket_priority, ticket_due_date, ticket_description) VALUES (?,?,?,?,?,?,?)");
+            
+            foreach ($heiIDs as $heiID) {
+                try {
+                    $conn->beginTransaction();
+                    $stmt->execute([(int)$heiID, $chedUserID, $title, $category, $priority, $dueDate, $description]);
+                    $ticketIds[] = $conn->lastInsertId();
+                    $conn->commit();
+                    $successCount++;
+                } catch (PDOException $e) {
+                    if ($conn->inTransaction()) $conn->rollBack();
+                    error_log('createTicketBatch individual insert error for HEI ' . $heiID . ': ' . $e->getMessage());
+                    $failedCount++;
+                }
+            }
+            
+            return ['success' => $successCount, 'failed' => $failedCount, 'ticket_ids' => $ticketIds];
+        }catch(PDOException $e){
+            error_log('createTicketBatch error: ' . $e->getMessage());
+            return ['success' => $successCount, 'failed' => $failedCount, 'ticket_ids' => $ticketIds];
+        }
+    }
+
     // =============================================================
     // [CHED] Template Management Functions
     // Pages: manage-data-templates.php
