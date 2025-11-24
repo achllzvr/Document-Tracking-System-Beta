@@ -52,6 +52,11 @@ if ($commitToken && $_SERVER['REQUEST_METHOD'] === 'POST'){
         respond(false, 'Batch insert failed.');
     }
 
+    // Update ticket status to 'For Review' after successful upload
+    if ($payloadTicketId && $inserted > 0){
+        $db->updateTicketStatusToForReview($payloadTicketId);
+    }
+
     // cleanup temp preview file after successful commit
     @unlink($tmpFile);
 

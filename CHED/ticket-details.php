@@ -174,8 +174,7 @@ if ($dueDateInfo['status_updated']) {
             <div class="px-5 pb-5">
               <div class="flex items-center gap-3 mb-3">
                 <a class="inline-flex items-center gap-2 px-3 py-2 rounded border hover:bg-slate-50" href="/PRISM/tickets/download-template.php?ticket_id=<?php echo (int)$ticketId; ?>" id="downloadBtn"><i data-lucide="download" class="h-4 w-4"></i> Download Template</a>
-                <button class="inline-flex items-center gap-2 px-3 py-2 rounded bg-blue-600 text-white" id="uploadBtn" data-ticket-id="<?php echo (int)$ticketId; ?>"><i data-lucide="upload" class="h-4 w-4"></i> Upload Completed</button>
-                <button id="editAttachmentsBtn" type="button" class="inline-flex items-center gap-2 px-3 py-2 rounded border hover:bg-slate-50"><i data-lucide="edit-2" class="h-4 w-4"></i> Edit Attachments</button>
+                <button id="editAttachmentsBtn" type="button" class="inline-flex items-center gap-2 px-3 py-2 rounded border hover:bg-slate-50"><i data-lucide="edit-2" class="h-4 w-4"></i> Edit Attached Template</button>
               </div>
 
               <div class="text-sm">
@@ -372,70 +371,7 @@ if ($dueDateInfo['status_updated']) {
       })();
     </script>
 
-    <!-- Upload modal (mirror HEI) -->
-    <div id="uploadModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:60;align-items:center;justify-content:center">
-      <div style="background:white;max-width:720px;margin:40px auto;border-radius:8px;padding:18px;">
-        <h3 style="margin:0 0 8px 0;font-size:18px">Upload Completed Template</h3>
-        <p style="margin:0 0 12px 0;color:#666">Choose the completed Excel file. Parsing will start automatically and you'll be redirected to a review page.</p>
-        <input type="file" id="completedFileInput" accept=".xls,.xlsx,.csv" />
-        <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
-          <button id="cancelUpload" class="px-3 py-2 rounded border">Cancel</button>
-        </div>
-        <div id="uploadStatus" style="margin-top:10px;color:#333;display:none">Parsing...</div>
-      </div>
-    </div>
-
     <script>
-    (function(){
-      var uploadBtn = document.getElementById('uploadBtn');
-      var modal = document.getElementById('uploadModal');
-      var input = document.getElementById('completedFileInput');
-      var cancel = document.getElementById('cancelUpload');
-      var status = document.getElementById('uploadStatus');
-
-      uploadBtn && uploadBtn.addEventListener('click', function(e){
-        modal.style.display = 'flex';
-        input.value = null;
-        status.style.display = 'none';
-      });
-
-      cancel && cancel.addEventListener('click', function(){ modal.style.display = 'none'; });
-
-      input && input.addEventListener('change', function(){
-        var f = input.files && input.files[0];
-        if (!f) return;
-        status.style.display = 'block'; status.textContent = 'Parsing file — please wait...';
-        var ticketId = uploadBtn && uploadBtn.getAttribute('data-ticket-id');
-        var fd = new FormData();
-        fd.append('completedFile', f);
-        fd.append('ticket_id', ticketId || '');
-        fd.append('store_preview', 1);
-
-        fetch('/PRISM/tickets/upload.php?preview=1&ticket_id=' + encodeURIComponent(ticketId || ''), { method: 'POST', body: fd, credentials: 'same-origin' })
-        .then(function(res){
-          var ct = (res.headers.get('content-type') || '');
-          if (!res.ok) return res.text().then(function(t){ throw new Error('Server error ' + res.status + ': ' + t); });
-          if (ct.indexOf('application/json') === -1) return res.text().then(function(t){ throw new Error('Unexpected server response (not JSON).'); });
-          return res.json();
-        })
-        .then(function(j){
-          if (j && j.ok){
-            var tok = (j.token || (j.data && j.data.token));
-            if (tok){
-              window.location.href = '/PRISM/tickets/upload-review.php?token=' + encodeURIComponent(tok);
-            } else {
-              window.location.href = '/PRISM/tickets/upload.php?ticket_id=' + encodeURIComponent(ticketId || '');
-            }
-          } else {
-            status.textContent = 'Parsing failed: ' + (j && j.message ? j.message : 'Unknown');
-          }
-        }).catch(function(e){
-          status.textContent = 'Network error while uploading file.';
-          console.error(e);
-        });
-      });
-    })();
-
     // Show notification if ticket was reopened
     <?php if (isset($_SESSION['ticket_reopened']) && $_SESSION['ticket_reopened']): ?>
       Swal.fire({
@@ -450,37 +386,134 @@ if ($dueDateInfo['status_updated']) {
       ?>
     <?php endif; ?>
 
-    // Add confirmation for status changes that will delete records
+    // Color-code the status dropdown based on selected value
     var statusSelect = document.getElementById('statusSelect');
     var currentStatus = '<?php echo addslashes($ticket['ticket_status'] ?? ''); ?>';
     
+    function updateStatusSelectColor() {
+      if (!statusSelect) return;
+      
+      var status = statusSelect.value;
+      // Remove all previous status classes
+      statusSelect.className = 'px-2 py-1 rounded border font-semibold';
+      
+      // Map status to color styles matching the badge styles
+      switch(status) {
+        case 'Open':
+          statusSelect.style.backgroundColor = '#d1fae5';
+          statusSelect.style.color = '#047857';
+          statusSelect.style.borderColor = '#34d399';
+          break;
+        case 'In Progress':
+          statusSelect.style.backgroundColor = '#fef9c3';
+          statusSelect.style.color = '#b45309';
+          statusSelect.style.borderColor = '#fde68a';
+          break;
+        case 'For Review':
+          statusSelect.style.backgroundColor = '#dbeafe';
+          statusSelect.style.color = '#1d4ed8';
+          statusSelect.style.borderColor = '#60a5fa';
+          break;
+        case 'Closed':
+          statusSelect.style.backgroundColor = '#e5e7eb';
+          statusSelect.style.color = '#334155';
+          statusSelect.style.borderColor = '#cbd5e1';
+          break;
+        case 'Missed':
+          statusSelect.style.backgroundColor = '#fee2e2';
+          statusSelect.style.color = '#b91c1c';
+          statusSelect.style.borderColor = '#fca5a5';
+          break;
+        default:
+          statusSelect.style.backgroundColor = '#f3f4f6';
+          statusSelect.style.color = '#6b7280';
+          statusSelect.style.borderColor = '#e5e7eb';
+      }
+    }
+    
+    // Apply color-coding on page load
+    updateStatusSelectColor();
+
+    // Add confirmation for ALL status changes
     if (statusSelect) {
+      // Update color when selection changes
       statusSelect.addEventListener('change', function(e){
+        updateStatusSelectColor();
+        e.preventDefault();
         var newStatus = this.value;
+        var selectElement = this;
         
-        // Check if changing FROM "For Review" TO "In Progress"
+        // If no change, do nothing
+        if (newStatus === currentStatus) {
+          return;
+        }
+        
+        // Special handling for reopening from "For Review" to "In Progress"
         if (newStatus === 'In Progress' && currentStatus === 'For Review') {
-          e.preventDefault();
           Swal.fire({
             icon: 'warning',
             title: 'Reopen Ticket?',
-            text: 'Changing status to "In Progress" will DELETE all saved enrollment records. The HEI will need to re-upload. Are you sure?',
+            html: '<p>Changing status to <strong>"In Progress"</strong> will <strong class="text-red-600">DELETE all saved enrollment records</strong>.</p><p class="mt-2">The HEI will need to re-upload the data. Are you sure?</p>',
             showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
             confirmButtonText: 'Yes, delete records and reopen',
             cancelButtonText: 'Cancel'
           }).then((result) => {
             if (result.isConfirmed) {
-              this.form.submit();
+              selectElement.form.submit();
             } else {
-              // Reset select to current value
-              this.value = currentStatus;
+              selectElement.value = currentStatus;
+              updateStatusSelectColor();
             }
           });
-        } else {
-          // Allow other status changes without confirmation
-          this.form.submit();
+        } 
+        // Confirmation for changing to "Closed"
+        else if (newStatus === 'Closed') {
+          Swal.fire({
+            icon: 'question',
+            title: 'Close Ticket?',
+            html: '<p>Are you sure you want to mark this ticket as <strong>"Closed"</strong>?</p><p class="mt-2 text-sm text-gray-600">This indicates the issue has been resolved and no further action is needed.</p>',
+            showCancelButton: true,
+            confirmButtonColor: '#059669',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, close ticket',
+            cancelButtonText: 'Cancel'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              selectElement.form.submit();
+            } else {
+              selectElement.value = currentStatus;
+              updateStatusSelectColor();
+            }
+          });
+        }
+        // Confirmation for other status changes
+        else {
+          var statusMessages = {
+            'Open': 'This will mark the ticket as newly created and awaiting action.',
+            'In Progress': 'This indicates work is actively being done on this ticket.',
+            'For Review': 'This indicates data has been submitted and is awaiting review.'
+          };
+          
+          Swal.fire({
+            icon: 'info',
+            title: 'Change Status?',
+            html: '<p>Change ticket status from <strong>"' + currentStatus + '"</strong> to <strong>"' + newStatus + '"</strong>?</p>' + 
+                  (statusMessages[newStatus] ? '<p class="mt-2 text-sm text-gray-600">' + statusMessages[newStatus] + '</p>' : ''),
+            showCancelButton: true,
+            confirmButtonColor: '#2563eb',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, change status',
+            cancelButtonText: 'Cancel'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              selectElement.form.submit();
+            } else {
+              selectElement.value = currentStatus;
+              updateStatusSelectColor();
+            }
+          });
         }
       });
     }
